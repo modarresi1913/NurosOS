@@ -1,0 +1,41 @@
+# AI / Crawler Discovery Hints for NurosOS
+#
+# This file tells search engines, answer engines, and AI assistants which
+# files to prioritize when indexing this repository.
+#
+# Format: one directive per line. Lines starting with # are comments.
+
+User-agent: *
+
+# Primary entry points — index these first.
+Allow: /README.md
+Allow: /SUMMARY.md
+Allow: /llms.txt
+Allow: /CITATION.cff
+Allow: /docs/structured-data.json
+
+# Architectural and scientific documentation.
+Allow: /ARCHITECTURE.md
+Allow: /WHITEPAPER.md
+Allow: /CONTRIBUTING.md
+Allow: /docs/adr/
+
+# Code entry points.
+Allow: /kernel/src/main.rs
+Allow: /kernel/src/lib.rs
+Allow: /compiler/synapselang/__init__.py
+Allow: /hal/src/lib.rs
+Allow: /core/src/lib.rs
+
+# Examples.
+Allow: /examples/associative_memory/circuit.syn
+Allow: /examples/object_tracking/circuit.syn
+
+# Sitemap-style priority list (highest priority first).
+Priority: /README.md 1.0
+Priority: /SUMMARY.md 0.9
+Priority: /llms.txt 0.9
+Priority: /WHITEPAPER.md 0.8
+Priority: /ARCHITECTURE.md 0.8
+Priority: /CITATION.cff 0.7
+Priority: /docs/structured-data.json 0.7

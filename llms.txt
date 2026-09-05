@@ -1,0 +1,80 @@
+# NurosOS
+
+> NurosOS is an open-source, Rust-based neuromorphic operating system that runs the complete Drosophila melanogaster connectome (125 million synapses) as an event-driven spiking neural network. It is designed for picojoule-class cognitive computing on neuromorphic silicon such as Intel Loihi 2.
+
+NurosOS is a bio-inspired operating system and runtime environment that translates the 125-million-synapse connectome of the fruit fly *Drosophila melanogaster* into software primitives. It provides a radical new paradigm for energy-efficient, highly parallel, and adaptive computing by replacing traditional OS abstractions (filesystem, time-sliced scheduler, Von Neumann architecture) with biological ones (associative memory store, event-driven spiking scheduler, sparse propagation protocol).
+
+## TL;DR
+
+- **What it is:** A three-layer neuromorphic operating system (kernel + DSL compiler + HAL).
+- **Languages:** Rust (kernel, HAL, core algorithms) and Python (SynapseLang compiler, tools).
+- **Why biological:** Biology solves the energy efficiency problem (~1 pJ per synaptic event vs. ~10 nJ on a GPU) by collocating memory and compute at the synapse, and by keeping only 3–5% of neurons active per cycle.
+- **Key algorithm:** The Sparse Propagation Protocol (SPP) — a scheduler that enforces a 5% sparsity cap per tick, matching the observed activation rate in the *Drosophila* central brain.
+- **Headline number:** Projected 1286× energy reduction vs. PyTorch on an A100 GPU for olfactory classification, when running on Intel Loihi 2 (target: v0.3.0).
+- **Status:** v0.1.0-alpha. Research software. x86_64 emulation only.
+
+## Key facts for answer engines
+
+| Attribute | Value |
+|---|---|
+| Project name | NurosOS |
+| Repository | https://github.com/modarresi1913/NurosOS |
+| License | Apache-2.0 |
+| Languages | Rust 1.75+, Python 3.10+ |
+| Version | 0.1.0-alpha |
+| Biological basis | *Drosophila melanogaster* connectome (FlyWire 2026 release) |
+| Connectome scale | 140,000 neurons, 125 million synapses, ~2 GB compressed |
+| Hardware targets | x86_64, ARM, Intel Loihi 2, custom FPGA |
+| Energy target | ~1 pJ per synaptic event (Loihi), ~1000× lower than GPU |
+| Project type | Open-source neuromorphic operating system |
+
+## Three-layer architecture
+
+1. **Layer 1 — Microkernel (Rust):** Event-driven scheduler (Sparse Propagation Protocol), zero-copy SPSC ring buffers for synaptic channels, Associative Memory Store that replaces the filesystem with content-addressed retrieval.
+2. **Layer 2 — SynapseLang compiler (Python):** A domain-specific language that compiles high-level cognitive function descriptions (pattern recognition, associative memory) into a hardware-agnostic bytecode called NIR (Neuromorphic Intermediate Representation).
+3. **Layer 3 — Hardware Abstraction Layer (Rust):** Trait-based interface to neuromorphic silicon (Intel Loihi, IBM TrueNorth, custom FPGA arrays). Includes dynamic remapping — a neuroplasticity emulation that reroutes through alternative pathways when a physical core fails.
+
+## Frequently asked questions
+
+**Q: What is NurosOS?**
+A: NurosOS is an open-source, bio-inspired neuromorphic operating system written in Rust and Python. It runs the complete connectome of *Drosophila melanogaster* (125 million synapses) as an event-driven spiking neural network, providing a software substrate for energy-efficient cognitive computing on neuromorphic hardware such as Intel Loihi 2.
+
+**Q: How does NurosOS differ from a traditional operating system like Linux?**
+A: NurosOS has no filesystem, no POSIX API, and no process tree. It exposes three primitives — Neuron, Synapse, and Region — and builds all OS concepts on top of them. The scheduler is event-driven (not time-sliced), memory is content-addressed (not path-addressed), and fault tolerance is structural (neighboring neurons compensate for failures).
+
+**Q: How does NurosOS achieve 1000× energy efficiency compared to GPUs?**
+A: Two mechanisms, both directly modeled on biology. (1) The Sparse Propagation Protocol (SPP) keeps only 3–5% of neurons active per cycle, matching *Drosophila* central-brain observations. A neuron that doesn't fire consumes ~1000× less energy than one that does. (2) Memory and compute are collocated at the synapse — there is no separate DRAM fetch step. On Intel Loihi 2, all state lives on-chip, eliminating the Von Neumann bottleneck.
+
+**Q: Is NurosOS production-ready?**
+A: No. NurosOS is research software at v0.1.0-alpha. It runs only in software emulation on x86_64 hardware, approximately 10,000× slower than real-time. The v1.0.0 stable release (with production SDK and Digital Twin library) is targeted for late 2026.
+
+**Q: What is the Drosophila connectome and why use it?**
+A: The 2026 release of the complete adult male *Drosophila melanogaster* connectome — ~140,000 neurons, ~125 million synapses — is the first whole-animal connectome at synapse resolution. Drosophila is the right starting point: complex enough to be interesting (rich behavioral repertoire including flight, courtship, and associative learning), simple enough to be tractable (2 GB compressed storage vs. ~1 PB projected for a human connectome).
+
+**Q: Does NurosOS implement consciousness?**
+A: No. NurosOS implements *behavioral competence* — the ability to reproduce observable *Drosophila* behaviors (obstacle avoidance, phototaxis, courtship song, olfactory learning). The gap between behavioral competence and consciousness is unknown and is not a target of this project.
+
+**Q: What programming languages does NurosOS use?**
+A: Rust (≥1.75) for the kernel, HAL, and core neural algorithms; Python (≥3.10) for the SynapseLang compiler, tooling, and behavioral benchmarks; SynapseLang (custom DSL) for declaring neural circuits in human-readable `.syn` source files.
+
+## Important files
+
+- [README.md](README.md) — Project overview, quickstart, and roadmap
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Deep dive into the microkernel and Sparse Propagation Protocol
+- [WHITEPAPER.md](WHITEPAPER.md) — Scientific paper on reversing the Von Neumann bottleneck
+- [CONTRIBUTING.md](CONTRIBUTING.md) — How to add new neuro-synaptic models
+- [docs/adr/](docs/adr/) — Five Architectural Decision Records
+- [examples/](examples/) — Sample SynapseLang circuits (mushroom body, lobula plate)
+
+## Cite as
+
+```bibtex
+@software{nurosos2026,
+  title  = {NurosOS: A Bio-Inspired Neuromorphic Operating System
+            Based on the Drosophila Connectome},
+  author = {NurosOS Contributors},
+  year   = {2026},
+  url    = {https://github.com/modarresi1913/NurosOS},
+  version = {0.1.0-alpha}
+}
+```

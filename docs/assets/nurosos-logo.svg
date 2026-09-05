@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="98" fill="url(#bg)" stroke="url(#accent)" stroke-width="2"/>
+
+  <!-- Stylized neuron: soma + dendrites + axon -->
+  <g filter="url(#glow)" stroke="url(#accent)" stroke-width="1.5" fill="none" stroke-linecap="round">
+    <!-- Dendrites (input) -->
+    <path d="M 60 100 Q 40 80 30 60"/>
+    <path d="M 60 100 Q 40 100 25 100"/>
+    <path d="M 60 100 Q 40 120 30 140"/>
+    <path d="M 60 100 Q 50 70 55 50"/>
+    <path d="M 60 100 Q 50 130 55 150"/>
+
+    <!-- Axon (output) -->
+    <path d="M 140 100 Q 160 80 175 60" stroke-width="2"/>
+    <path d="M 140 100 Q 160 100 178 100" stroke-width="2"/>
+    <path d="M 140 100 Q 160 120 175 140" stroke-width="2"/>
+    <path d="M 140 100 Q 150 130 145 150" stroke-width="2"/>
+    <path d="M 140 100 Q 150 70 145 50" stroke-width="2"/>
+
+    <!-- Synaptic terminals -->
+    <circle cx="30" cy="60" r="2" fill="#06b6d4"/>
+    <circle cx="25" cy="100" r="2" fill="#06b6d4"/>
+    <circle cx="30" cy="140" r="2" fill="#06b6d4"/>
+    <circle cx="55" cy="50" r="2" fill="#06b6d4"/>
+    <circle cx="55" cy="150" r="2" fill="#06b6d4"/>
+
+    <circle cx="175" cy="60" r="2" fill="#8b5cf6"/>
+    <circle cx="178" cy="100" r="2" fill="#8b5cf6"/>
+    <circle cx="175" cy="140" r="2" fill="#8b5cf6"/>
+    <circle cx="145" cy="50" r="2" fill="#8b5cf6"/>
+    <circle cx="145" cy="150" r="2" fill="#8b5cf6"/>
+  </g>
+
+  <!-- Soma (cell body) -->
+  <circle cx="100" cy="100" r="14" fill="url(#accent)" filter="url(#glow)"/>
+  <circle cx="100" cy="100" r="14" fill="none" stroke="#0f172a" stroke-width="1"/>
+
+  <!-- Spike indicator -->
+  <path d="M 96 100 L 100 95 L 100 105 L 104 100" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Label -->
+  <text x="100" y="180" text-anchor="middle" fill="#94a3b8" font-family="-apple-system, Segoe UI, Roboto, sans-serif" font-size="14" font-weight="600" letter-spacing="2">NUROSOS</text>
+</svg>

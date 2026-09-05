@@ -1,0 +1,31 @@
+# GitHub repository metadata — used by GitHub's topic search and discovery.
+# See: https://github.com/github-linguist/linguist/blob/master/docs/repository-topics.md
+
+repository:
+  description: >-
+    Bio-inspired neuromorphic operating system that runs the complete
+    Drosophila melanogaster connectome (125M synapses) as an event-driven
+    spiking neural network. Rust kernel + Python SynapseLang compiler.
+    Targets x86, ARM, Intel Loihi 2, FPGA.
+  homepage: https://github.com/modarresi1913/NurosOS
+  topics:
+    - neuromorphic-computing
+    - spiking-neural-networks
+    - drosophila
+    - connectome
+    - bio-inspired
+    - operating-system
+    - rust
+    - python
+    - event-driven
+    - intel-loihi
+    - sparse-computing
+    - synaptic-plasticity
+    - stdp
+    - lif-neuron
+    - cognitive-computing
+    - edge-ai
+    - low-power
+    - scientific-computing
+    - open-source
+    - apache-2

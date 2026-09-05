@@ -1,0 +1,121 @@
+# Schema.org structured data for NurosOS.
+# Embeds SoftwareApplication + Dataset + FAQPage markup so that search
+# engines and answer engines can index the project accurately.
+#
+# To enable: GitHub renders this as a downloadable file. For full SEO
+# benefit, embed the JSON below as a <script type="application/ld+json">
+# block in any HTML documentation site.
+
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "NurosOS",
+      "description": "An open-source, bio-inspired neuromorphic operating system that runs the complete Drosophila melanogaster connectome (125 million synapses) as an event-driven spiking neural network. Designed for picojoule-class cognitive computing on neuromorphic silicon such as Intel Loihi 2.",
+      "url": "https://github.com/modarresi1913/NurosOS",
+      "applicationCategory": "ScienceApplication",
+      "applicationSubCategory": "Neuromorphic Computing",
+      "operatingSystem": "Cross-platform (x86_64, ARM, Intel Loihi 2, FPGA)",
+      "programmingLanguage": ["Rust", "Python"],
+      "softwareVersion": "0.1.0-alpha",
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "isAccessibleForFree": true,
+      "keywords": [
+        "neuromorphic computing",
+        "spiking neural networks",
+        "Drosophila connectome",
+        "event-driven operating system",
+        "bio-inspired computing",
+        "Intel Loihi",
+        "Sparse Propagation Protocol",
+        "SynapseLang",
+        "associative memory store",
+        "Von Neumann bottleneck"
+      ],
+      "author": {
+        "@type": "Organization",
+        "name": "NurosOS Contributors",
+        "url": "https://github.com/modarresi1913/NurosOS"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "NurosOS Contributors",
+        "url": "https://github.com/modarresi1913/NurosOS"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is NurosOS?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "NurosOS is an open-source, bio-inspired neuromorphic operating system written in Rust and Python. It runs the complete connectome of Drosophila melanogaster (125 million synapses) as an event-driven spiking neural network, providing a software substrate for energy-efficient cognitive computing on neuromorphic hardware such as Intel Loihi 2."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does NurosOS differ from a traditional operating system like Linux?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "NurosOS has no filesystem, no POSIX API, and no process tree. It exposes three primitives — Neuron, Synapse, and Region — and builds all OS concepts on top of them. The scheduler is event-driven (not time-sliced), memory is content-addressed (not path-addressed), and fault tolerance is structural."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does NurosOS achieve 1000x energy efficiency compared to GPUs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Two mechanisms: (1) The Sparse Propagation Protocol keeps only 3-5% of neurons active per cycle, matching Drosophila central-brain observations. A neuron that doesn't fire consumes ~1000x less energy than one that does. (2) Memory and compute are collocated at the synapse — there is no separate DRAM fetch step, eliminating the Von Neumann bottleneck on neuromorphic silicon like Intel Loihi 2."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is NurosOS production-ready?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. NurosOS is research software at v0.1.0-alpha. It runs only in software emulation on x86_64 hardware, approximately 10,000x slower than real-time. The v1.0.0 stable release with production SDK is targeted for late 2026."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the Drosophila connectome and why use it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The 2026 release of the complete adult male Drosophila melanogaster connectome — ~140,000 neurons, ~125 million synapses — is the first whole-animal connectome at synapse resolution. Drosophila is the right starting point: complex enough to be interesting (rich behavioral repertoire), simple enough to be tractable (2 GB compressed storage vs. ~1 PB projected for a human connectome)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does NurosOS implement consciousness?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. NurosOS implements behavioral competence — the ability to reproduce observable Drosophila behaviors (obstacle avoidance, phototaxis, courtship song, olfactory learning). The gap between behavioral competence and consciousness is unknown and is not a target of this project."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What programming languages does NurosOS use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Rust (>=1.75) for the kernel, HAL, and core neural algorithms; Python (>=3.10) for the SynapseLang compiler, tooling, and behavioral benchmarks; SynapseLang (custom DSL) for declaring neural circuits in human-readable .syn source files."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "Dataset",
+      "name": "Drosophila melanogaster connectome (mini release, 125M synapses)",
+      "description": "The complete adult male Drosophila melanogaster connectome — 140,000 neurons and 125 million synaptic connections, compressed to ~2 GB. Used as the structural template for NurosOS.",
+      "creator": {
+        "@type": "Organization",
+        "name": "FlyWire Consortium"
+      },
+      "license": "CC-BY-4.0",
+      "isAccessibleForFree": true,
+      "keywords": ["connectome", "Drosophila", "synapse-level", "neuroscience", "FlyWire"]
+    }
+  ]
+}
