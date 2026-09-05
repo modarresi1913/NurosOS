@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# =============================================================================
+# nuros-cli — Thin shim that dispatches to the right NurosOS binary.
+#
+# This script is what `make install-cli` copies to the repo root. It exists
+# so that users have a single entry point (`./nuros-cli ...`) regardless of
+# which subcommand they invoke. Each subcommand either calls the built kernel
+# binary or a Python entry point from the SynapseLang package.
+# =============================================================================
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KERNEL_BIN="${PROJECT_ROOT}/kernel/target/release/nuros-kernel"
+[ -x "${KERNEL_BIN}" ] || KERNEL_BIN="${PROJECT_ROOT}/kernel/target/debug/nuros-kernel"
+
+VENV_PY="${PROJECT_ROOT}/.venv/bin/python"
+[ -x "${VENV_PY}" ] || VENV_PY="$(command -v python3)"
+
+# Color helpers
+GREEN=$'\033[32m'; BLUE=$'\033[34m'; YELL=$'\033[33m'; RED=$'\033[31m'; RST=$'\033[0m'
+
+usage() {
+    cat <<EOF
+${GREEN}nuros-cli${RST} — NurosOS command-line interface
+
+${BLUE}USAGE:${RST}
+    nuros-cli <COMMAND> [OPTIONS]
+
+${BLUE}COMMANDS:${RST}
+    start       Boot NurosOS in the specified mode
+    attach      Attach a shell to a running NurosOS instance
+    compile     Compile a SynapseLang source file to NIR bytecode
+    inspect     Dump the structure of a connectome file
+    bench       Run a built-in benchmark
+    help        Print this message
+
+${BLUE}EXAMPLES:${RST}
+    nuros-cli start --mode=emulation --target=drosophila
+    nuros-cli attach --port=8080
+    nuros-cli compile examples/associative_memory/circuit.syn
+
+${BLUE}SEE ALSO:${RST}
+    README.md, ARCHITECTURE.md
+EOF
+}
+
+cmd_start() {
+    local mode="emulation"
+    local target="drosophila"
+    local connectome="${PROJECT_ROOT}/data/connectome/drosophila-mini.h5"
+    local port="8080"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --mode)        mode="$2"; shift 2 ;;
+            --target)      target="$2"; shift 2 ;;
+            --connectome)  connectome="$2"; shift 2 ;;
+            --port)        port="$2"; shift 2 ;;
+            *) echo "${RED}Unknown option:${RST} $1" >&2; exit 2 ;;
+        esac
+    done
+
+    if [[ ! -x "${KERNEL_BIN}" ]]; then
+        echo "${RED}Kernel binary not found.${RST} Run ${YELL}make build-kernel${RST} first." >&2
+        exit 1
+    fi
+    if [[ ! -f "${connectome}" ]]; then
+        echo "${YELL}Connectome not found:${RST} ${connectome}" >&2
+        echo "Run ${YELL}make bootstrap${RST} to download it (~2GB)." >&2
+        exit 1
+    fi
+
+    echo "${GREEN}[nuros-cli]${RST} Starting kernel: mode=${mode} target=${target} port=${port}"
+    exec "${KERNEL_BIN}" \
+        --mode="${mode}" \
+        --target="${target}" \
+        --connectome="${connectome}" \
+        --rpc-port="${port}"
+}
+
+cmd_attach() {
+    local port="8080"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --port) port="$2"; shift 2 ;;
+            *) echo "${RED}Unknown option:${RST} $1" >&2; exit 2 ;;
+        esac
+    done
+    echo "${GREEN}[nuros-cli]${RST} Attaching to localhost:${port}"
+    exec "${VENV_PY}" -m synapselang.shell --host=127.0.0.1 --port="${port}"
+}
+
+cmd_compile() {
+    if [[ $# -lt 1 ]]; then
+        echo "${RED}Usage:${RST} nuros-cli compile <file.syn> [-o out.nir]" >&2
+        exit 2
+    fi
+    local src="$1"; shift
+    exec "${VENV_PY}" -m synapselang.cli compile "$src" "$@"
+}
+
+cmd_inspect() {
+    if [[ $# -lt 1 ]]; then
+        echo "${RED}Usage:${RST} nuros-cli inspect <connectome.h5>" >&2
+        exit 2
+    fi
+    exec "${VENV_PY}" -m synapselang.cli inspect "$1"
+}
+
+cmd_bench() {
+    exec "${VENV_PY}" -m synapselang.cli bench "$@"
+}
+
+# ---- Dispatch ---------------------------------------------------------------
+subcmd="${1:-help}"; shift || true
+case "${subcmd}" in
+    start)   cmd_start   "$@" ;;
+    attach)  cmd_attach  "$@" ;;
+    compile) cmd_compile "$@" ;;
+    inspect) cmd_inspect "$@" ;;
+    bench)   cmd_bench   "$@" ;;
+    help|-h|--help) usage ;;
+    *) echo "${RED}Unknown command:${RST} ${subcmd}" >&2; usage; exit 2 ;;
+esac

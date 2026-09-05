@@ -1,0 +1,105 @@
+// =============================================================================
+// Associative Memory — a sparse, content-addressable memory circuit modeled
+// after the Drosophila mushroom body.
+//
+// Biological correspondence
+// -------------------------
+// The mushroom body is the seat of associative learning in Drosophila.
+// Kenyon cells (sparse, high-dimensional) project to mushroom body output
+// neurons (MBONs), which encode approach/avoid valence. The KC→MBON
+// synapse is the site of dopamine-modulated plasticity — this is where
+// the fly learns that "odor X = bad" (paired with shock) or "odor Y = good"
+// (paired with sugar).
+//
+// This circuit reproduces the essential structure:
+//   - 256-dim sensory input (mimics ORN population)
+//   - 4096 Kenyon cells (sparse coding, ~5% active)
+//   - 16 MBONs (valence output)
+//   - Hebbian plasticity at ORN→KC (initial wiring)
+//   - STDP at KC→MBON (learning site)
+//   - Lateral inhibition among KCs (sharpens sparse code)
+// =============================================================================
+
+circuit AssociativeMemory {
+    // Sensory afferent (mimics the ORN population).
+    input  odor[256];
+
+    // Motor efferent — the recalled pattern.
+    output recall[256];
+
+    // αβ Kenyon cells — sparse, high-dimensional odor coding.
+    // Default parameters are from Acerbo et al. (2012).
+    neuron kc[4096] : LIF(
+        tau_m=18ms,
+        tau_s=5.5ms,
+        theta=-55mV,
+        v_rest=-70mV,
+        v_reset=-80mV,
+        tau_refrac=2ms
+    );
+
+    // Mushroom Body Output Neurons — approach/avoid valence.
+    neuron mbon[16] : LIF(
+        tau_m=10ms,
+        theta=-50mV
+    );
+
+    // ORN → KC: random sparse projections (1:5 ratio, like the fly).
+    // 5% density matches the biological sparsity of the antennal lobe.
+    connect odor -> kc : sparse(density=0.05) : hebbian(lr=0.01);
+
+    // KC → MBON: dense, plastic (this is where learning happens).
+    // STDP with symmetric windows — mimics the fly's associative
+    // learning rule.
+    connect kc -> mbon : dense : stdp(
+        eta_plus=0.01,
+        eta_minus=0.01,
+        tau_plus=20ms,
+        tau_minus=20ms
+    );
+
+    // MBON → recall: linear projection (readout).
+    connect mbon -> recall : dense : fixed(weight=0.5);
+
+    // Lateral inhibition in the antennal lobe — sharpens odor identity
+    // by suppressing non-principal responses. Mirrors the GABAergic
+    // local interneuron circuit described by Hong & Wilson (2015).
+    inhibit kc : lateral(radius=5, strength=0.3);
+}
+
+// =============================================================================
+// Behavioral system call — wraps the circuit as a queryable API.
+//
+// Biological correspondence
+// -------------------------
+// This is the equivalent of the behavioral sequence a fly performs when
+// encountering a novel odor:
+//   1. Sensory transduction (inject stimulus).
+//   2. Central processing (wait for convergence).
+//   3. Memory consolidation (store in AMS).
+// =============================================================================
+
+syscall memorize(odor: Tensor[256]) -> Handle {
+    // Inject the odor vector into the circuit's input port.
+    inject odor into AssociativeMemory.odor;
+
+    // Wait for the circuit to converge (KC population stabilizes).
+    wait until AssociativeMemory.recall stabilizes;
+
+    // Store the (stimulus, response) pair in the Associative Memory Store.
+    // This mimics memory consolidation in the mushroom body.
+    return AMS.store(odor, AssociativeMemory.recall);
+}
+
+syscall recall(partial_odor: Tensor[256]) -> Tensor[256] {
+    inject partial_odor into AssociativeMemory.odor;
+    wait until AssociativeMemory.recall stabilizes;
+    return AssociativeMemory.recall;
+}
+
+syscall reinforce(handle: Handle, reward: Float) -> Void {
+    // Mimics dopamine-modulated plasticity at the KC→MBON synapse.
+    // A positive reward strengthens the association; a negative reward
+    // (punishment) weakens it.
+    return AMS.reinforce(handle, reward);
+}

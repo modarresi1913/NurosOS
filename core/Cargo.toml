@@ -1,0 +1,14 @@
+[package]
+name = "nuros-core"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "Core neural network algorithms for NurosOS — STDP, LIF, Hebbian learning."
+license = "Apache-2.0"
+
+[lib]
+name = "nuros_core"
+path = "src/lib.rs"
+
+[dependencies]
+half = { version = "2.4", features = ["num-traits"] }
+serde = { version = "1.0", features = ["derive"] }

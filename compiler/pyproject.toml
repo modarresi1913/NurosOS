@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synapselang"
+version = "0.1.0-alpha"
+description = "A DSL that compiles high-level cognitive functions into weighted graphs of excitatory/inhibitory connections."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "NurosOS Contributors" }
+]
+keywords = ["neuromorphic", "connectome", "spiking", "drosophila", "dsl", "compiler"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "numpy>=1.26",
+  "h5py>=3.10",         # Connectome .h5 files
+  "pydantic>=2.5",      # AST validation
+  "rich>=13.7",         # Pretty CLI output
+  "click>=8.1",         # CLI framework
+  "msgpack>=1.0",       # NIR bytecode serialization
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "ruff>=0.1.13",
+  "mypy>=1.8",
+]
+viz = [
+  "matplotlib>=3.8",
+  "networkx>=3.2",
+]
+
+[project.scripts]
+synapselang = "synapselang.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/NurosOS/NurosOS"
+Repository = "https://github.com/NurosOS/NurosOS"
+Documentation = "https://github.com/NurosOS/NurosOS/blob/main/compiler/README.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["synapselang*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "D"]
+ignore = ["D100", "D104", "D105", "D107"]  # Allow missing docstrings on dunder/init
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true

@@ -1,0 +1,9 @@
+[package]
+name = "nuros-hal-x86"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "x86_64 software-emulation HAL driver for NurosOS."
+license = "Apache-2.0"
+
+[lib]
+path = "src/lib.rs"

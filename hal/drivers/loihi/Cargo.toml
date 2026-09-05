@@ -1,0 +1,9 @@
+[package]
+name = "nuros-hal-loihi"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "Intel Loihi neuromorphic chip HAL driver for NurosOS."
+license = "Apache-2.0"
+
+[lib]
+path = "src/lib.rs"

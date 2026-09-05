@@ -1,0 +1,76 @@
+// =============================================================================
+// Object Tracking — a visual motion detection circuit modeled after
+// the Drosophila lobula plate.
+//
+// Biological correspondence
+// -------------------------
+// The lobula plate is the motion-processing center of the fly visual
+// system. It contains large-motion-sensitive neurons (LPTCs — Lobula
+// Plate Tangential Cells) that integrate directional signals from
+// Elementary Motion Detectors (EMDs). The fly uses this circuit to
+// stabilize flight, avoid collisions, and track moving targets.
+//
+// This circuit reproduces the essential structure:
+//   - 1024 photoreceptors (mimics the Drosophila compound eye)
+//   - 256 EMDs (elementary motion detectors, delay-line correlation)
+//   - 16 LPTCs (4 per cardinal direction: N/S/E/W)
+//
+// The delay-and-correlate structure of the EMD is the classic
+// Hassenstein-Reichardt detector (1956), which remains the standard
+// model of insect motion detection.
+// =============================================================================
+
+circuit ObjectTracker {
+    // Photoreceptor input (mimics the compound eye — ~800 ommatidia
+    // per eye, but we use 1024 for power-of-2 alignment).
+    input  pixels[1024];
+
+    // Directional motion output (4 directions × 4 speeds = 16 channels).
+    output motion[16];
+
+    // Elementary Motion Detectors — one per spatial location.
+    // These implement the Hassenstein-Reichardt delay-line correlation.
+    neuron emd[256] : LIF(
+        tau_m=5ms,         // Fast integration — flies need real-time motion
+        theta=-50mV,
+        v_rest=-70mV
+    );
+
+    // Lobula Plate Tangential Cells — large, wide-field neurons that
+    // integrate EMD outputs. Each LPTC is tuned to a preferred direction.
+    neuron lptc[16] : LIF(
+        tau_m=10ms,
+        theta=-45mV       // Low threshold — LPTCs are highly sensitive
+    );
+
+    // Photoreceptors → EMDs: 4-to-1 convergence (each EMD compares
+    // two adjacent photoreceptors with a delay).
+    connect pixels -> emd : sparse(density=0.04) : hebbian(lr=0.005);
+
+    // EMDs → LPTCs: direction-selective wiring.
+    // In biology, this wiring is set up during development by
+    // gradient-guided axon pathfinding. Here we use Hebbian learning
+    // to discover the same structure from input statistics.
+    connect emd -> lptc : sparse(density=0.10) : stdp(
+        eta_plus=0.02,
+        eta_minus=0.02
+    );
+
+    // LPTCs → motion output: linear readout.
+    connect lptc -> motion : dense : fixed(weight=1.0);
+
+    // Lateral inhibition among LPTCs — implements winner-take-all
+    // for direction. Only one direction is reported at a time, which
+    // matches the "winner-take-all" dynamics observed in fly LPTCs.
+    inhibit lptc : lateral(radius=2, strength=0.5);
+}
+
+// =============================================================================
+// Behavioral system call — track a moving object.
+// =============================================================================
+
+syscall track(frame: Tensor[1024]) -> Tensor[16] {
+    inject frame into ObjectTracker.pixels;
+    wait until ObjectTracker.motion stabilizes;
+    return ObjectTracker.motion;
+}

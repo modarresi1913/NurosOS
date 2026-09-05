@@ -1,0 +1,17 @@
+[package]
+name = "nuros-tests"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "Integration tests and the Fly Benchmark for NurosOS."
+license = "Apache-2.0"
+
+[dependencies]
+nuros-kernel = { path = "../kernel" }
+nuros-core = { path = "../core" }
+nuros-hal = { path = "../hal" }
+half = "2.4"
+serde_json = "1.0"
+
+[[bin]]
+name = "fly_benchmark"
+path = "fly_benchmark/main.rs"

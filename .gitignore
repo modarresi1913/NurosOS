@@ -1,0 +1,53 @@
+# Rust build artifacts
+/kernel/target/
+/core/target/
+/hal/target/
+**/target/
+**/*.rs.bk
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Cargo lock — keep for binaries, ignore for libraries
+# (NurosOS is a binary project; keep Cargo.lock)
+# Cargo.lock
+
+# Connectome dataset (large, downloaded on demand)
+/data/
+/data/connectome/
+*.h5
+*.swc
+*.nir
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Profiler output
+*.prof
+*. flamegraph.svg
+perf.data*
+
+# FlyWire cached segmentation
+flywire_cache/

@@ -1,0 +1,28 @@
+[package]
+name = "nuros-hal"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "Hardware Abstraction Layer for NurosOS — unified driver interface for neuromorphic silicon."
+license = "Apache-2.0"
+
+[lib]
+name = "nuros_hal"
+path = "src/lib.rs"
+
+[dependencies]
+half = { version = "2.4", features = ["num-traits"] }
+log = "0.4"
+anyhow = "1.0"
+
+# HAL trait re-exports (so kernel doesn't need to depend on driver crates directly).
+nuros-hal-x86 = { path = "drivers/x86", optional = true }
+nuros-hal-arm = { path = "drivers/arm", optional = true }
+nuros-hal-loihi = { path = "drivers/loihi", optional = true }
+nuros-hal-fpga = { path = "drivers/fpga", optional = true }
+
+[features]
+default = ["x86"]
+x86 = ["dep:nuros-hal-x86"]
+arm = ["dep:nuros-hal-arm"]
+loihi = ["dep:nuros-hal-loihi"]
+fpga = ["dep:nuros-hal-fpga"]
