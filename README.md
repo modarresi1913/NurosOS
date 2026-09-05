@@ -425,6 +425,27 @@ NurosOS is built on the shoulders of the open connectomics community. The struct
 
 <sub>Built with care for the future of bio-inspired computing.</sub>
 
+---
+
+## Keywords
+
+<details>
+<summary><b>Click to expand keyword index (SEO / GEO / AEO)</b></summary>
+
+**Core:** neuromorphic operating system · bio-inspired OS · spiking neural network · event-driven scheduler · Drosophila connectome · 125M synapses · Sparse Propagation Protocol · SynapseLang · NIR bytecode · associative memory store · zero-copy IPC · STDP · LIF neuron · Intel Loihi 2 · picojoule computing · Von Neumann bottleneck · fault tolerance · neuroplasticity emulation · digital biology · cognitive computing · low-power AI · edge AI · Rust no_std kernel · Python DSL compiler
+
+**فارسی:** سیستم‌عامل عصب‌شکل‌نگرانه · شبکه عصبی اسپایکی · کانکتوم مگس میوه · محاسبات زیست‌الهام‌گرفته · پلاستیسیته سیناپسی · یادگیری هبی · نورون LIF · بدنه قارچی · لوب آنتن · حافظه تداعی‌گرا · شبیه‌سازی مغز · دوقلو دیجیتال · گلوگاه ون‌نویمن · محاسبات پیکوژولی · هوش مصنوعی کم‌مصرف · یادگیری رویدادمحور · حافظه محتوا-محور · Rust کرنل · زبان دامنه-ویژه
+
+Full keyword clusters in [`KEYWORDS.md`](KEYWORDS.md). Multilingual (EN + FA + planned CN).
+
+</details>
+
+---
+
+<div align="center">
+
+<sub>Built with care for the future of bio-inspired computing.</sub>
+
 **[⬆ Back to top](#nurosos)**
 
 </div>
