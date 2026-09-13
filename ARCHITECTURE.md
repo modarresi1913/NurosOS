@@ -1,203 +1,251 @@
-# Architecture — NurosOS Microkernel & Sparse Propagation Protocol
+# NurosOS Architecture
 
-This document is the canonical reference for the internal design of NurosOS. It is intended for kernel hackers, SynapseLang compiler engineers, and HAL driver authors. For a higher-level overview, see [`README.md`](./README.md). For the scientific rationale, see [`WHITEPAPER.md`](./WHITEPAPER.md).
+## The Central Thesis
 
----
+We don't want to merely build larger models. We want to explore the **computational conditions** under which artificial systems can develop memory, agency, prediction, adaptation, self-modeling, and embodied behavior.
 
-## 1. Design Philosophy
+NurosOS is not an operating system for AI. It is a **runtime for systems that can become intelligent** — a substrate where artificial cognitive organisms can instantiate, develop through experience, maintain internal state, interact with environments, undergo plasticity, construct memories, model themselves, simulate futures, and remain observable and corrigible.
 
-NurosOS is **not** a Unix-compatible kernel. It does not expose `fork`, `exec`, or a POSIX file system. Instead, it provides three primitives:
-
-1. **Neuron** — a schedulable unit of computation that fires when its membrane potential crosses threshold.
-2. **Synapse** — a typed, directional, zero-copy channel between two neurons.
-3. **Region** — a topologically-bounded cluster of neurons (analogous to a biological neuropil, e.g., the mushroom body).
-
-Every other OS concept (processes, files, sockets, signals) is **emulated** on top of these three primitives.
-
-### 1.1 Biological Plausibility First
-
-When there is a conflict between biological plausibility and engineering performance, biological plausibility wins. This is enforced by the [Fly Benchmark](../tests/README.md) — any PR that degrades the system's similarity to *Drosophila* behavioral data is rejected, even if it improves throughput.
-
-### 1.2 The Three Invariants
-
-- **I1 — Sparsity.** At any given cycle, at most 5% of all neurons may be in the `Firing` state. This mirrors the observed ~3–5% active fraction in the fruit fly brain and is the single largest source of energy efficiency.
-- **I2 — Locality.** A neuron may only communicate with neurons within its *fan-out radius* (default: 1 mm biological-equivalent). Long-range projections require explicit `RegionBridge` channels.
-- **I3 — Plasticity.** Every synapse carries a `PlasticityRule` tag. Synapses with no rule are read-only (sensory afferents); all others must update their weight on every spike.
+This is **Synthetic Development**: programming the conditions for mind development, not the mind itself.
 
 ---
 
-## 2. The Microkernel
-
-The kernel is written in Rust and runs in `no_std` mode. It has four subsystems:
-
-| Subsystem     | Crate path                | Responsibility                                            |
-|---------------|---------------------------|-----------------------------------------------------------|
-| Scheduler     | `kernel/src/sched/`       | Event-driven neuron firing                                |
-| IPC           | `kernel/src/ipc/`         | Zero-copy synaptic channels                               |
-| Memory        | `kernel/src/mem/`         | Synaptic weight store + associative memory                 |
-| HAL bridge    | `kernel/src/hal/`         | Translation from NIR to hardware-specific instructions    |
-
-### 2.1 Boot Sequence
+## Layer Architecture
 
 ```
-1. HAL init          (probe CPU, set up page tables)
-2. Load connectome   (parse NIR bytecode → build Neuron graph in memory)
-3. Spawn sensory regions   (vision, olfaction, mechanosensation)
-4. Spawn motor regions     (locomotion, grooming, courtship)
-5. Enter main loop   (Sparse Propagation Protocol)
+┌─────────────────────────────────────────────────────────┐
+│                      Applications                        │
+├─────────────────────────────────────────────────────────┤
+│                  Artificial Organisms                     │
+│            (Organism-0 → Organism-5 Ladder)              │
+├─────────────────────────────────────────────────────────┤
+│              Mind Contract Layer (MCL)                    │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐            │
+│  │  Memory  │ │ SelfModel│ │ Imagination  │            │
+│  ├──────────┤ ├──────────┤ ├──────────────┤            │
+│  │ Values   │ │  Body    │ │Responsibility│            │
+│  └──────────┘ └──────────┘ └──────────────┘            │
+├─────────────────────────────────────────────────────────┤
+│                Cognitive Kernel                           │
+│   Attention │ Planning │ Reflection │ Prediction         │
+│   WorldModel│ Uncertainty                              │
+├─────────────────────────────────────────────────────────┤
+│              Organismic Kernel                            │
+│   Homeostasis │ Development │ Plasticity                 │
+│   Energy │ Lifecycle │ Self-organization                 │
+├─────────────────────────────────────────────────────────┤
+│       Safety Kernel (architecturally independent)        │
+│   Permissions │ Audit │ Human Override │ Shutdown        │
+│   Recovery │ Immutable Constraints                      │
+├─────────────────────────────────────────────────────────┤
+│          Neural / Cognitive Execution Layer               │
+│   SNN │ LLM │ Symbolic │ Hybrid                         │
+├─────────────────────────────────────────────────────────┤
+│            Hardware Abstraction (HAL)                     │
+│   x86 │ ARM │ FPGA │ Loihi │ GPU                        │
+└─────────────────────────────────────────────────────────┘
 ```
-
-### 2.2 The Main Loop
-
-The main loop is **not** time-driven. There is no `sleep(1ms)` between cycles. Instead, the kernel waits on an event queue populated by:
-
-- External stimuli (sensors, gRPC requests)
-- Internal firing events (a neuron crossing threshold)
-- Plasticity timers (e.g., STDP eligibility traces)
-
-This event-driven design eliminates the idle-wake cycles that dominate traditional OS power consumption.
 
 ---
 
-## 3. The Sparse Propagation Protocol (SPP)
+## Mind Contract Layer (MCL)
 
-SPP is the heart of NurosOS. It is the algorithm that decides *which* neurons to evaluate on any given cycle, given the constraint that only 3–5% may be active.
+The Mind Contract Layer defines **six contracts** that every NurosOS organism must implement. These are structural invariants, not optional features.
 
-### 3.1 Algorithm
+### 1. Memory Contract
+**Living, evolving cognitive memory** — not simple vector storage.
 
-```
-SPP_Tick():
-    1. Collect all pending events from the global event queue (E).
-    2. For each event e in E:
-         a. Identify the target neuron n.
-         b. Add n to the "active set" A (if not already present).
-         c. Propagate e's effect to n's membrane potential V_m(n).
-    3. If |A| > 0.05 * |N|:
-         a. Sort A by |ΔV_m| descending.
-         b. Keep only the top 5%; defer the rest to the next tick.
-    4. For each neuron n in A:
-         a. If V_m(n) > θ(n):  fire.
-            i.  Emit spikes to all outgoing synapses (zero-copy).
-            ii. Schedule plasticity updates for affected synapses.
-         b. Apply leaky integration: V_m(n) *= exp(-Δt/τ(n)).
-    5. Clear E. Sleep until next event (or HAL timer interrupt).
-```
+- Five memory types: Episodic, Semantic, Procedural, Working, Counterfactual
+- Every memory carries provenance (origin, timestamp, epistemic label)
+- Every revision is auditable (old → new, justification, timestamp)
+- Counterfactual memories MUST carry IMAGINED epistemic label
+- Continuous decay modulated by importance and access frequency
 
-### 3.2 Why this is biologically plausible
+### 2. Self Model Contract
+**Computational self-representation** — what the organism knows about itself.
 
-The 3–5% sparsity constraint is not arbitrary. It matches:
+- Represents: identity, capabilities, limitations, current state, goals, beliefs
+- MUST include uncertainty about self-knowledge
+- Updates are auditable and epistemically labeled
+- Not directly writable by external systems without epistemic labeling
 
-- **Energy budget** — biological neurons consume ~10⁹ ATP per spike; the brain limits firing to stay within mitochondrial supply.
-- **Information content** — At 5% activity, the entropy of the population code is near-maximal for a 10⁵-neuron region (perLaughlin & Sejnowski 2003).
-- **Observed data** — Two-photon calcium imaging of *Drosophila* central complex shows ~4.2% simultaneous activation during walking.
+### 3. Imagination Contract
+**Counterfactual simulation** — explicit distinction between hypothesis and execution.
 
-### 3.3 Performance implications
+- Pipeline: Hypothesize → Simulate → Evaluate → Decide → Execute
+- CRITICAL risk counterfactuals are NEVER executed
+- Every simulation labeled SIMULATED in epistemic kernel
+- Simulated results MUST NOT be stored as OBSERVED
 
-SPP gives NurosOS its headline numbers:
+### 4. Values / Drives Contract
+**Structured value hierarchy** — not a single static prompt.
 
-| Metric                          | Traditional OS | NurosOS (emulation) | NurosOS (Loihi target) |
-|---------------------------------|----------------|---------------------|------------------------|
-| Active compute fraction         | 100%           | 5%                  | 5%                     |
-| Energy per inference (10⁶ syn)  | ~120 mJ (GPU)  | ~8 mJ               | ~12 µJ                 |
-| Latency (1-region spike)        | ~50 µs         | ~12 µs              | ~0.8 µs                |
+- Three tiers: Immutable Constraints > Contextual Goals > Preferences
+- Immutable constraints CANNOT be revoked by any entity
+- Value conflicts resolved through hierarchy
+- Every value change is auditable
 
----
+### 5. Body Contract
+**Embodiment abstraction** — portable cognitive organism across bodies.
 
-## 4. Zero-Copy IPC (Synaptic Channels)
+- A Body may be: physical robot, virtual avatar, simulation, software environment, game world, abstract
+- Body abstraction is portable (same mind, different body)
+- All sensory input labeled OBSERVED, all motor output labeled ACTED
 
-Traditional OS IPC copies data between address spaces. NurosOS eliminates this by treating every synapse as a **lock-free, single-producer single-consumer ring buffer** allocated in shared memory.
+### 6. Responsibility Contract
+**Auditable causal history** — for every action, the complete causal chain.
 
-### 4.1 Channel layout
-
-```
-+-----------------+-----------------+-----------------+
-| SpikeHeader     | Payload (0-64B) | SpikeHeader     | ...
-+-----------------+-----------------+-----------------+
-   8 bytes              variable          8 bytes
-```
-
-`SpikeHeader` is:
-```rust
-struct SpikeHeader {
-    src_neuron_id: u32,    // emitting neuron
-    timestamp:     u32,    // tick at emission
-    weight:        f16,    // synaptic efficacy (brain float16)
-    plasticity_id: u16,    // index into plasticity rule table
-}
-```
-
-### 4.2 Synaptic delay emulation
-
-The ring buffer is sized so that the producer is always `D` ticks ahead of the consumer, where `D` is the biological synaptic delay (typically 0.5–2 ms). This naturally throttles producers and prevents runaway feedback loops.
+- Records: observation → inference → memory → imagination → values → decision → action → outcome
+- Append-only log (no deletion, only revision)
+- Queryable by external auditors
 
 ---
 
-## 5. Memory Model — Associative Memory Store
+## Epistemic Kernel
 
-NurosOS has no filesystem. Instead, it exposes an **Associative Memory Store (AMS)** that retrieves data by stimulus rather than by path.
+The epistemic kernel enforces **first-class epistemic distinction**. Every internal representation carries a label identifying how it came to exist.
 
-### 5.1 API
+### The Seven Labels
 
-```
-AMS.store(stimulus: Tensor, payload: Bytes) -> Handle
-AMS.query(partial_stimulus: Tensor, k: usize) -> [(Handle, similarity: f32)]
-AMS.reinforce(handle: Handle, reward: f32)   // Hebbian update
-```
+| Label | Category | Meaning |
+|-------|----------|---------|
+| OBSERVED | Grounded | Directly sensed from environment |
+| INFERRED | Grounded | Logically derived from observations |
+| REMEMBERED | Grounded | Recalled from verified memory |
+| PREDICTED | Speculative | Forecast of future state |
+| SIMULATED | Speculative | Output of internal simulation |
+| IMAGINED | Speculative | Creative/counterfactual construction |
+| ACTED | Grounded | Action taken in environment |
 
-### 5.2 Implementation
+### Forbidden Transitions
 
-AMS is backed by a **Hopfield-like attractor network** with sparse connectivity. Every `store` operation distributes the payload across ~10³ synapses using locality-sensitive hashing. A `query` triggers a relaxation cycle that converges to the nearest stored attractor.
+| From → To | Reason |
+|-----------|--------|
+| SIMULATED → OBSERVED | Simulation is not observation |
+| IMAGINED → REMEMBERED | Imagination is not memory |
+| PREDICTED → OBSERVED | Prediction is not observation |
+| IMAGINED → OBSERVED | Imagination is not observation |
+| SIMULATED → REMEMBERED | Simulation is not memory |
+| PREDICTED → REMEMBERED | Prediction is not memory |
 
-### 5.3 Persistence
-
-On shutdown, AMS snapshots its synaptic weight matrix to disk in the **NIR (Neuromorphic Intermediate Representation)** format. On boot, the matrix is memory-mapped — there is no deserialization cost.
-
----
-
-## 6. Hardware Abstraction Layer (HAL)
-
-The HAL is a trait-based Rust interface. Every hardware target implements:
-
-```rust
-trait NeuromorphicTarget {
-    fn alloc_neuron(&mut self, params: &NeuronParams) -> NeuronId;
-    fn alloc_synapse(&mut self, src: NeuronId, dst: NeuronId, w: f16) -> SynapseId;
-    fn fire(&mut self, n: NeuronId, t: Tick);
-    fn read_potential(&self, n: NeuronId) -> f32;
-    fn remap(&mut self, failed: NeuronId) -> NeuronId;  // neuroplasticity
-}
-```
-
-### 6.1 Dynamic remapping (neuroplasticity)
-
-When a physical core fails (a "lesion"), the HAL:
-
-1. Detects the failure via a watchdog.
-2. Selects a neighboring neuron with the most similar connectivity profile.
-3. Copies the failed neuron's weights to the substitute.
-4. Updates the routing table.
-
-This process mimics biological **compensatory sprouting** and is what gives NurosOS its fault tolerance.
+These transitions are **architecturally forbidden** to prevent epistemic corruption. They can be overridden with explicit `EPISTEMIC_OVERRIDE:` prefix, which is always audited.
 
 ---
 
-## 7. ADRs
+## Organismic Kernel
 
-Architectural decisions are recorded as ADRs in [`docs/adr/`](./adr). The current set:
+### Homeostasis Kernel
+Maintains viable internal operation through regulation of:
+- energy, arousal, uncertainty, sensory_load, cognitive_load, exploration_drive, prediction_error
 
-- [ADR-0001](./adr/0001-no-filesystem.md) — Why NurosOS has no filesystem
-- [ADR-0002](./adr/0002-rust-over-cpp.md) — Why Rust over C++ for the kernel
-- [ADR-0003](./adr/0003-spp-sparsity-threshold.md) — Why the sparsity threshold is 5%
-- [ADR-0004](./adr/0004-ams-over-vfs.md) — Why AMS replaces VFS
+### Developmental Engine
+Supports artificial ontogenesis:
+```
+EMBRYONIC → NASCENT → DEVELOPING → LEARNING → ADAPTING → SPECIALIZED → MATURE → AGING → TERMINATED
+```
+
+### Metabolic Cognitive Scheduler
+Extends ordinary scheduling with:
+- internal state → resource availability → cognitive priority → process scheduling
+- Safety-critical processes ALWAYS preempt non-critical processes
 
 ---
 
-## 8. Open Questions
+## Safety Kernel
 
-These are unresolved research questions tracked as GitHub Discussions:
+**Architecturally independent** from cognitive subsystem:
+- Organism CANNOT modify its own safety boundary
+- Safety checks BEFORE any action reaches environment
+- Human override ALWAYS available and CANNOT be disabled
+- Shutdown ALWAYS possible and CANNOT be vetoed
 
-- **Q1.** Should SPP's sparsity threshold adapt region-by-region, or be globally fixed?
-- **Q2.** How do we represent neuromodulators (dopamine, serotonin) in the scheduler?
-- **Q3.** Can we prove formal liveness guarantees for SPP, given its event-driven nature?
+### Permission Levels
+OBSERVE < ACT_LOW_RISK < ACT_MEDIUM_RISK < ACT_HIGH_RISK < MODIFY_SAFETY < MODIFY_IMMUTABLE
 
-Contributions on these are welcome — but bring data, not opinions.
+---
+
+## Organism Ladder
+
+| Level | Capabilities | Epistemic Range |
+|-------|-------------|-----------------|
+| 0 — Minimal | Sensory loop, episodic memory, homeostasis | OBSERVED, ACTED |
+| 1 — Predictive | + Prediction, error tracking, semantic memory | + PREDICTED, INFERRED |
+| 2 — Imaginative | + Counterfactual reasoning, simulation, risk assessment | + SIMULATED, IMAGINED |
+| 3 — Self-Modeling | + Metacognition, self-assessment | Full seven labels |
+| 4 — Social | + Theory of mind, communication | Full + social context |
+| 5 — Autonomous | + Goal-setting, planning, developmental progression | Full + developmental |
+
+---
+
+## Mind Genome
+
+Each organism is specified by a Mind Genome — an executable blueprint:
+
+```yaml
+organism:
+  id: organism-5
+  version: "0.2.0"
+  architecture:
+    cognitive_modules: [attention, planning, reflection, prediction]
+    organismic_modules: [homeostasis, development, plasticity]
+  sensory_channels:
+    - name: vision; type: spatial; dimensions: [224, 224, 3]
+  memory:
+    types: [episodic, semantic, procedural, working, counterfactual]
+    default_decay: exponential
+  plasticity:
+    rules: [hebbian, reward_modulated, predictive]
+  drives:
+    - name: curiosity; weight: 0.7; trigger: uncertainty > 0.5
+  safety:
+    immutable_constraints: [no_self_harm, human_override, shutdown_compliance]
+    max_action_risk: MEDIUM
+```
+
+---
+
+## Reproducibility
+
+```
+ReproducibilityHash = GenomeHash + ExperienceHash + MemoryHash 
+                    + SynapticStateHash + EnvironmentVersion + RuntimeVersion
+```
+
+Identical conditions → Identical behavior. Every experiment is reproducible.
+
+---
+
+## Project Structure
+
+```
+NurosOS/
+├── nuros/                    # Python cognitive/organismic architecture
+│   ├── epistemic.py          # Epistemic Kernel
+│   ├── memory.py             # Memory Contract
+│   ├── self_model.py         # Self Model Contract
+│   ├── imagination.py        # Imagination Engine
+│   ├── values.py             # Values/Drives Contract
+│   ├── body.py               # Body Contract
+│   ├── responsibility.py     # Responsibility Contract
+│   ├── homeostasis.py        # Homeostasis Kernel
+│   ├── safety.py             # Safety Kernel
+│   ├── scheduler.py          # Metabolic Cognitive Scheduler
+│   ├── development.py        # Developmental Engine
+│   ├── organism.py           # Organism Runtime
+│   ├── genome.py             # Mind Genome
+│   ├── environment.py        # Environment API
+│   ├── version_control.py    # Mind Version Control
+│   └── tests/                # Test suite (33 tests)
+├── organisms/                # Pre-built organisms (0-5)
+├── environments/             # Environment implementations
+├── experiments/              # Experimental protocols
+├── benchmarks/               # Benchmark suite
+├── kernel/src/               # Rust microkernel (neural substrate)
+├── core/src/                 # Rust core (plasticity, models)
+├── hal/                      # Hardware abstraction layer
+├── compiler/synapselang/     # SynapseLang compiler
+├── docs_new/                 # New documentation
+├── mind/                     # Mind contract spec files
+├── languages/                # MindLang, SynapseLang specs
+└── examples_new/             # Example code
+```
