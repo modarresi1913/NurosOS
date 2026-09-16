@@ -89,7 +89,7 @@ The `nuros-dev` crate ([DEVELOPMENTAL_SUBSTRATE.md](DEVELOPMENTAL_SUBSTRATE.md))
 | Mind Observatory | [IMPLEMENTED] | Observability layer: 9 text renderers + 13 PNG plots + CLI |
 | CounterfactualSelf + PossibleSelfSpace | [IMPLEMENTED] | Alternative developmental histories + reachable state space |
 | Cognitive Metabolism | [IMPLEMENTED] | 7 budgets + 9 operations + value-of-information rule |
-| Artificial Aging | [PROPOSED] | Aging model |
+| Artificial Aging | [IMPLEMENTED] | 5 dimensions: memory degradation, plasticity, processing, experience, consolidation |
 | Artificial Evolution | [PROPOSED] | Mutation/selection on DevelopmentalGenome |
 
 ---
@@ -353,7 +353,7 @@ These are **research questions**, not predetermined conclusions (full list in [R
 | **Phase 10** | Mind Observatory: text renderers + PNG plots + CLI | ✅ Complete |
 | **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | ✅ Complete |
 | **Phase 12** | Cognitive/Epistemic Metabolism: 7 budgets + 9 operations + value-of-information rule | ✅ Complete |
-| **Phase 13** | Artificial Aging: memory degradation, plasticity changes, structural consolidation | 📋 Proposed |
+| **Phase 13** | Artificial Aging: 5 dimensions (memory degradation, plasticity, processing, experience, consolidation) | ✅ Complete |
 | **Phase 14** | Artificial Evolution: mutation/selection/inheritance on DevelopmentalGenome | 📋 Proposed |
 
 See [ROADMAP.md](ROADMAP.md) for the full version-by-version roadmap.
@@ -460,7 +460,7 @@ NurosOS/
 | Mind Observatory | Python | v0.3.0-alpha [IMPLEMENTED] — 21 tests, 9 text renderers + 13 PNG plots |
 | CounterfactualSelf + PossibleSelfSpace | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 9 Rust + 15 Python tests |
 | Cognitive Metabolism | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 11 Rust + 12 Python tests |
-| Artificial Aging | — | [PROPOSED] — Phase 13 |
+| Artificial Aging | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 14 Rust + 11 Python tests |
 | Artificial Evolution | — | [PROPOSED] — Phase 14 |
 | Neuromorphic Kernel (v0.1.0) | Rust | Preserved as future execution backend |
 | SynapseLang (v0.1.0) | Python | Preserved as v0.1.0 |

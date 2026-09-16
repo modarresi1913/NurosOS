@@ -36,6 +36,7 @@ pub mod causality;
 pub mod telemetry;
 pub mod counterfactual;
 pub mod metabolism;
+pub mod aging;
 
 // Re-export the most commonly used types at the crate root for convenience.
 pub use genome::DevelopmentalGenome;
@@ -50,6 +51,7 @@ pub use causality::{DevelopmentalCausalityGraph, EventKind, CausalEvent};
 pub use telemetry::{DevelopmentalTelemetry, TelemetryRecord, ReproducibilityManifest, trajectory_to_telemetry};
 pub use counterfactual::{CounterfactualSelf, CounterfactualTrajectory, PossibleSelfSpace, COUNTERFACTUAL_LABELS};
 pub use metabolism::{CognitiveMetabolism, CognitiveBudget, CognitiveCostModel, CognitiveOperation, BudgetSpending};
+pub use aging::{AgingModel, AgingEffect};
 
 /// The semantic version of this crate. Recorded in every manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -553,6 +555,92 @@ fn version() -> &'static str {
     VERSION
 }
 
+/// Run an aging comparison experiment.
+///
+/// Develops two organisms from the same genome: one with no aging, one with
+/// the given aging model (as JSON). Returns a JSON string comparing their
+/// final developmental states.
+///
+/// This demonstrates how accumulated computational history affects future cognition.
+#[pyfunction]
+#[pyo3(signature = (aging_model_json, n_steps=100, env_seed=1, width=6, height=6, genome_name="aging_demo".to_string()))]
+fn run_aging_comparison(
+    aging_model_json: &str,
+    n_steps: u64,
+    env_seed: u64,
+    width: u32,
+    height: u32,
+    genome_name: String,
+) -> PyResult<String> {
+    let aging_model: AgingModel = serde_json::from_str(aging_model_json)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("aging_model: {}", e)))?;
+
+    let genome = DevelopmentalGenome::named(genome_name);
+
+    // Organism A: no aging
+    let mut org_a = MinimumOrganism::instantiate(genome.clone());
+    org_a.initialize().unwrap();
+    org_a.begin_development().unwrap();
+    let mut env_a = ResourceWorld::new(width, height, env_seed);
+    env_a.reset();
+    for _ in 0..n_steps {
+        org_a.tick(&mut env_a);
+    }
+
+    // Organism B: with aging
+    let mut org_b = MinimumOrganism::instantiate(genome.clone());
+    org_b.initialize().unwrap();
+    org_b.begin_development().unwrap();
+    let mut env_b = ResourceWorld::new(width, height, env_seed);
+    env_b.reset();
+    for _ in 0..n_steps {
+        org_b.tick(&mut env_b);
+        aging_model.apply(&mut org_b.state.developmental);
+    }
+
+    let dev_a = &org_a.state.developmental;
+    let dev_b = &org_b.state.developmental;
+
+    let result = serde_json::json!({
+        "experiment": "aging_comparison",
+        "genome_hash": genome.hash(),
+        "n_steps": n_steps,
+        "env_seed": env_seed,
+        "aging_model_hash": aging_model.hash(),
+        "no_aging": {
+            "plasticity": dev_a.plasticity,
+            "stability": dev_a.stability,
+            "energy_state": dev_a.energy_state,
+            "cognitive_load": dev_a.cognitive_load,
+            "memory_capacity": dev_a.memory_capacity,
+            "prediction_accuracy": dev_a.prediction_accuracy,
+            "self_model_stability": dev_a.self_model_stability,
+            "state_hash": org_a.state.short_hash(),
+        },
+        "with_aging": {
+            "plasticity": dev_b.plasticity,
+            "stability": dev_b.stability,
+            "energy_state": dev_b.energy_state,
+            "cognitive_load": dev_b.cognitive_load,
+            "memory_capacity": dev_b.memory_capacity,
+            "prediction_accuracy": dev_b.prediction_accuracy,
+            "self_model_stability": dev_b.self_model_stability,
+            "state_hash": org_b.state.short_hash(),
+        },
+        "deltas": {
+            "plasticity": dev_b.plasticity - dev_a.plasticity,
+            "stability": dev_b.stability - dev_a.stability,
+            "energy_state": dev_b.energy_state - dev_a.energy_state,
+            "cognitive_load": dev_b.cognitive_load - dev_a.cognitive_load,
+            "memory_capacity": dev_b.memory_capacity - dev_a.memory_capacity,
+            "prediction_accuracy": dev_b.prediction_accuracy - dev_a.prediction_accuracy,
+            "self_model_stability": dev_b.self_model_stability - dev_a.self_model_stability,
+        },
+    });
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+}
+
 fn parse_action(s: &str) -> PyResult<Action> {
     Ok(match s.to_lowercase().as_str() {
         "move_right" | "right" | "r" => Action::MoveRight,
@@ -611,6 +699,7 @@ fn _dev(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mind_diff, m)?)?;
     m.add_function(wrap_pyfunction!(run_metabolism_sweep, m)?)?;
     m.add_function(wrap_pyfunction!(evaluate_value_of_information, m)?)?;
+    m.add_function(wrap_pyfunction!(run_aging_comparison, m)?)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
     Ok(())
 }

@@ -132,11 +132,17 @@ into an experimental platform for synthetic development.
 - [x] 11 Rust unit tests in metabolism.rs
 - [x] Interpretation caveat: computational abstraction, NOT biological metabolism
 
-### Phase 13 — Artificial Aging 📋 (Proposed)
-- [ ] `AgingModel` with configurable aging dimensions
-- [ ] Memory degradation, plasticity changes, processing constraints,
-      experience accumulation, structural consolidation
-- [ ] Investigate: How does accumulated computational history affect future cognition?
+### Phase 13 — Artificial Aging ✅ (Complete)
+- [x] `nuros-dev/src/aging.rs` — `AgingModel` + `AgingEffect`
+- [x] 5 aging dimensions: memory degradation, plasticity changes, processing constraints, experience accumulation, structural consolidation
+- [x] Configurable rates + onsets + floors + ceilings
+- [x] `AgingModel::no_aging()` + `AgingModel::rapid_aging()` presets
+- [x] `apply(&mut DevelopmentalState)` — applies one tick of aging
+- [x] PyO3 binding: `run_aging_comparison(aging_model_json, n_steps)`
+- [x] `experiments/aging_demo.py` — comparison with 3 presets (none/gentle/rapid)
+- [x] `nuros/tests/test_aging.py` — 11 Python integration tests
+- [x] 14 Rust unit tests in aging.rs
+- [x] Interpretation caveat: Aging is configurable. Do not impose biological aging assumptions without evidence.
 
 ### Phase 14 — Artificial Evolution 📋 (Proposed)
 - [ ] `ArtificialEvolution` operating on `DevelopmentalGenome`

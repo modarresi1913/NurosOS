@@ -223,10 +223,27 @@ worth the cognitive cost?" Implemented in `nuros-dev/src/metabolism.rs`.
 **Interpretation caveat**: This is a computational abstraction inspired by
 resource-constrained organisms. It does NOT reproduce biological metabolism.
 
-### [PROPOSED] Artificial Aging
+### [IMPLEMENTED] Artificial Aging
 
-An experimental aging model: memory degradation, plasticity changes,
-processing constraints, experience accumulation, structural consolidation.
+An experimental aging model with 5 configurable dimensions: memory
+degradation, plasticity changes, processing constraints, experience
+accumulation, structural consolidation. Implemented in
+`nuros-dev/src/aging.rs`.
+
+**Dimensions**:
+1. **Memory degradation** — `memory_degradation_rate`, `memory_degradation_onset`
+2. **Plasticity changes** — `plasticity_decay_rate`, `plasticity_decay_onset`, `plasticity_floor`
+3. **Processing constraints** — `cognitive_load_increase`, `energy_efficiency_decay`, `max_cognitive_load`
+4. **Experience accumulation** — `stability_improvement_rate`, `max_stability`, `prediction_accuracy_improvement`
+5. **Structural consolidation** — `self_model_consolidation_rate`, `max_self_model_stability`
+
+**Presets**: `AgingModel::no_aging()`, `AgingModel::default()` (gentle), `AgingModel::rapid_aging()`
+
+**PyO3 binding**: `run_aging_comparison(aging_model_json, n_steps)` — develops two organisms (no aging vs. with aging) and compares final developmental states.
+
+**Interpretation caveat**: Aging is configurable. Do not impose biological
+aging assumptions without evidence. The purpose is to investigate: *How does
+accumulated computational history affect future cognition?*
 
 ### [PROPOSED] Artificial Evolution
 
