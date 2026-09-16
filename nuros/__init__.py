@@ -1,11 +1,9 @@
 """
-NurosOS — A Runtime for Synthetic Minds and Artificial Organisms.
+NurosOS — The Experimental Substrate for Synthetic Development.
 
-NurosOS is not an operating system for AI.
-It is a runtime in which artificial cognitive organisms can be instantiated,
-develop through experience, maintain internal state, interact with an
-environment, undergo plasticity, construct memories, model themselves,
-simulate possible futures, and remain observable and corrigible.
+NurosOS is an open, modular, inspectable substrate for synthetic development —
+a runtime in which artificial organisms can be instantiated, developed,
+embodied, observed, measured, forked, replayed, and experimentally compared.
 
 Core Principles:
     1. Substrate Independence
@@ -18,24 +16,43 @@ Core Principles:
     8. Modularity
     9. Human Correctability
     10. Scientific Humility
+
+The central research question:
+    What happens when we stop programming the final behavior of an artificial
+    mind and instead program the conditions under which its cognitive
+    structure can develop?
 """
 
-__version__ = "0.2.0-alpha"
+__version__ = "0.3.0-alpha"
 __status__ = "experimental"
 
 CENTRAL_THESIS = (
-    "NurosOS is not an operating system for AI. "
-    "It is a runtime for systems that can become intelligent."
+    "NurosOS is an experimental substrate for studying how artificial minds "
+    "develop. The fundamental object is not MODEL but TRAJECTORY; not AGENT "
+    "but DEVELOPING ORGANISM."
 )
 
 PHILOSOPHY = (
-    "Don't program the mind. "
-    "Program the conditions under which a mind can develop."
+    "Don't train a mind. Instantiate its developmental conditions. "
+    "Don't program the mind. Program the conditions under which a mind "
+    "can develop."
 )
 
 DISTINCTIONS = (
     "Memory is not storage. "
     "Development is not deployment. "
     "Simulation is not observation. "
-    "Intelligence is not consciousness."
+    "Intelligence is not consciousness. "
+    "Divergence is not individuality."
 )
+
+# Try to import the optional Rust-backed developmental substrate.
+# This is built from nuros-dev/ via `maturin develop` or `pip install`.
+try:
+    from nuros import _dev  # type: ignore
+    _DEV_AVAILABLE = True
+    _DEV_VERSION = _dev.version()
+except ImportError:
+    _DEV_AVAILABLE = False
+    _DEV_VERSION = None
+

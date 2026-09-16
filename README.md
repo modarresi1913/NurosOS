@@ -2,18 +2,20 @@
 
 # NurosOS
 
-### A Runtime for Synthetic Minds and Artificial Organisms
+### The Experimental Substrate for Synthetic Development
 
-*We don't want to merely build larger models. We want to explore the computational conditions under which artificial systems can develop memory, agency, prediction, adaptation, self-modeling, and embodied behavior.*
+*Instantiate. Develop. Observe. Fork. Replay. Compare.*
+
+*We don't train a mind. We instantiate its developmental conditions.*
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.0--alpha-orange.svg?style=flat-square)](https://github.com/modarresi1913/NurosOS/releases)
+[![Version](https://img.shields.io/badge/version-0.3.0--alpha-orange.svg?style=flat-square)](https://github.com/modarresi1913/NurosOS/releases)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776ab.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-ce422b.svg?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![Status: Experimental](https://img.shields.io/badge/status-experimental-yellow.svg?style=flat-square)](#status)
-[![Tests](https://img.shields.io/badge/tests-33%20passing-brightgreen.svg?style=flat-square)](#testing)
+[![Tests](https://img.shields.io/badge/tests-75%20passing-brightgreen.svg?style=flat-square)](#testing)
 
-**[Overview](#overview) · [Architecture](#architecture) · [Mind Contracts](#mind-contracts) · [Quickstart](#quickstart) · [Organisms](#organisms) · [Roadmap](#roadmap) · [Philosophy](#philosophy)**
+**[Overview](#overview) · [Developmental Substrate](#developmental-substrate) · [Architecture](#architecture) · [Flagship Experiment](#flagship-experiment) · [Quickstart](#quickstart) · [Roadmap](#roadmap) · [Philosophy](#philosophy)**
 
 </div>
 
@@ -21,15 +23,15 @@
 
 ## Overview
 
-NurosOS is an **open, modular, event-driven substrate** for experimenting with the computational conditions under which artificial systems can develop memory, agency, prediction, adaptation, self-modeling, and embodied behavior.
+NurosOS is an **open, modular, inspectable substrate for synthetic development** — a runtime in which artificial organisms can be instantiated, developed, embodied, observed, measured, forked, replayed, and experimentally compared.
 
-> **NurosOS is not an operating system for AI. It is a runtime for systems that can become intelligent.**
+> **NurosOS is an experimental substrate for studying how artificial minds develop.**
 
 ### What NurosOS Is
 
-- An **executable substrate** in which artificial cognitive organisms can be instantiated, developed, embodied, evaluated, forked, and experimentally studied
-- A **modular architecture** with clear separation between neural substrate, cognitive kernel, organismic kernel, safety kernel, and mind contracts
+- An **experimental substrate** for synthetic development and artificial cognition
 - A **research infrastructure** where every extraordinary claim ships with a reproducible experiment
+- A **modular architecture** with clear separation between developmental kernel, runtime, organism, environment, observation, causality, and reproducibility
 
 ### What NurosOS Is NOT
 
@@ -39,7 +41,56 @@ NurosOS is an **open, modular, event-driven substrate** for experimenting with t
 - ❌ A general-purpose LLM agent framework
 - ❌ A production deployment platform
 
+### The Central Inversion
+
+Traditional AI:
+```
+Model → Training → Agent
+```
+
+NurosOS:
+```
+Developmental Genome
+   → Environment
+   → Experience
+   → Development
+   → Individual Cognitive Trajectory
+   → Artificial Organism
+```
+
+The fundamental object is therefore not `MODEL` but `TRAJECTORY`; not `AGENT` but `DEVELOPING ORGANISM`.
+
 NurosOS is **experimental research infrastructure**.
+
+---
+
+## Developmental Substrate
+
+The `nuros-dev` crate ([DEVELOPMENTAL_SUBSTRATE.md](DEVELOPMENTAL_SUBSTRATE.md)) implements the developmental substrate. It is written in Rust and exposed to Python via PyO3.
+
+### Implemented Components
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| `DevelopmentalGenome` | [IMPLEMENTED] | Serializable, hashable genome with architecture, plasticity, maturation schedule, energy model |
+| `DevelopmentalState` | [IMPLEMENTED] | Vector-valued observable state with L1 distance metric |
+| `LifecycleMachine` | [IMPLEMENTED] | Auditable state machine: CREATED → INITIALIZED → DEVELOPING → ... → TERMINATED |
+| `ResourceWorld` | [IMPLEMENTED] | 2D grid environment with resources and hazards |
+| `ChangingWorld` | [IMPLEMENTED] | 1D environment with shifting resource (tests adaptation) |
+| `MinimumOrganism` | [IMPLEMENTED] | Deterministic cognitive engine exercising the full developmental loop |
+| `DevelopmentalTrajectory` | [IMPLEMENTED] | Ordered trajectory points + divergence metrics |
+| `MindCheckpoint` | [IMPLEMENTED] | Save/restore full organism + environment state |
+| `ReplayFidelity` | [IMPLEMENTED] | EXACT / APPROXIMATE / NON_REPRODUCIBLE classification |
+| `MindDiff` | [IMPLEMENTED] | Structured diff of memory, self-model, values, capabilities, behavior, developmental state |
+| `DevelopmentalCausalityGraph` | [IMPLEMENTED] | Provenance DAG with causal trace walks |
+| `DevelopmentalTelemetry` | [IMPLEMENTED] | JSONL + CSV export for offline analysis |
+| `ReproducibilityManifest` | [IMPLEMENTED] | Machine-readable provenance for every experiment |
+| Same Genome / Different World | [IMPLEMENTED] | Flagship experiment runner |
+| Mind Observatory | [PROPOSED] | Visualization layer |
+| CounterfactualSelf | [PROPOSED] | Alternative developmental histories |
+| Cognitive Metabolism | [PROPOSED] | Resource accounting |
+| Artificial Aging | [PROPOSED] | Aging model |
+| Artificial Evolution | [PROPOSED] | Mutation/selection on DevelopmentalGenome |
 
 ---
 
@@ -152,33 +203,61 @@ Every internal representation carries an epistemic label:
 
 ---
 
+## Flagship Experiment
+
+The flagship NurosOS experiment is **Same Genome / Different World**: two
+organisms instantiated from the same genome, placed in differently-seeded
+environments, and developed for the same number of steps. The experiment
+demonstrates **Computational Developmental Divergence** — identical initial
+computational conditions producing divergent developmental states under
+different environmental histories.
+
+> **Interpretation caveat:** This is NOT evidence of consciousness or
+> biological individuality. It is an observable computational fact about
+> divergent developmental trajectories.
+
+```bash
+# Build the Rust extension (one-time)
+cd nuros-dev && maturin build --release && pip install --force-reinstall target/wheels/nuros_dev-*.whl && cd ..
+
+# Run the flagship experiment
+python experiments/same_genome_different_world.py \
+    --steps 200 --env-a-seed 1 --env-b-seed 999 \
+    --out-dir ./experiment_outputs/same_genome_different_world
+```
+
+Outputs (written to `--out-dir`):
+
+- `genome.json` — the genome used (with hash)
+- `trajectory_a.jsonl` / `trajectory_b.jsonl` — per-step trajectory records
+- `telemetry_a.csv` / `telemetry_b.csv` — flat telemetry tables
+- `checkpoint_a.json` / `checkpoint_b.json` — final checkpoints
+- `divergence.json` — `DevelopmentalDivergence` between A and B
+- `mind_diff.json` — `MindDiff` between final states of A and B
+- `manifest_a.json` / `manifest_b.json` — `ReproducibilityManifest` for each
+- `report.txt` — human-readable summary
+- `summary.json` — machine-readable summary
+
+---
+
 ## Quickstart
 
 ```bash
 git clone https://github.com/modarresi1913/NurosOS.git
 cd NurosOS
 
-# Run the test suite
-python -m pytest nuros/tests/ -v
+# Build and install the Rust developmental substrate
+cd nuros-dev
+maturin build --release
+pip install --force-reinstall target/wheels/nuros_dev-*.whl
+cd ..
 
-# Create and run an organism
-python -c "
-from nuros.organism import Organism, OrganismConfig
-from nuros.environment import GridWorld
+# Run the test suite (75 tests: 57 Rust + 18 Python)
+cd nuros-dev && cargo test --lib && cd ..
+python -m pytest nuros/tests/test_developmental_substrate.py -v
 
-env = GridWorld(10, 10)
-env.reset()
-
-org = Organism(OrganismConfig(name='explorer', environment=env))
-org.birth()
-
-for i in range(100):
-    result = org.tick()
-    if i % 25 == 0:
-        print(f'Tick {i}: stage={result[\"stage\"]}, hash={org.state_hash()}')
-
-print('Snapshot:', org.snapshot())
-"
+# Run the flagship experiment
+python experiments/same_genome_different_world.py --steps 200
 ```
 
 ---
@@ -274,16 +353,21 @@ These are **hypotheses**, not established facts:
 ## Testing
 
 ```bash
-# Run all 33 tests
-python -m pytest nuros/tests/ -v
+# Rust unit tests (57 tests) — covers genome hashing, lifecycle, environments,
+# organism determinism, trajectory divergence, checkpoint/replay, mind diff,
+# causality graph, telemetry, and reproducibility manifest.
+cd nuros-dev && cargo test --lib
 
-# Run specific test class
-python -m pytest nuros/tests/test_core.py::TestEpistemicKernel -v
-python -m pytest nuros/tests/test_core.py::TestSafetyKernel -v
-python -m pytest nuros/tests/test_core.py::TestOrganism -v
+# Python integration tests (18 tests) — covers the PyO3 bindings end-to-end,
+# including the flagship Same Genome / Different World experiment.
+python -m pytest nuros/tests/test_developmental_substrate.py -v
+
+# Existing Python cognitive-layer tests (33 tests) — covers epistemic kernel,
+# memory contract, safety kernel, etc.
+python -m pytest nuros/tests/test_core.py -v
 ```
 
-All 33 tests passing ✅
+All 108 tests passing ✅ (57 Rust + 18 developmental-substrate Python + 33 cognitive-layer Python)
 
 ---
 

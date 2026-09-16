@@ -51,3 +51,13 @@ perf.data*
 
 # FlyWire cached segmentation
 flywire_cache/
+
+# nuros-dev: built Python extension (.so should be installed via pip, not committed)
+nuros/_dev*.so
+nuros/_dev*.pyd
+nuros-dev/target/
+nuros-dev/Cargo.lock
+
+# Experiment outputs (regenerated per run, not version-controlled)
+experiment_outputs/
+

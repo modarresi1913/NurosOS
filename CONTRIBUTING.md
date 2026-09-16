@@ -1,29 +1,75 @@
 # Contributing to NurosOS
 
-> **"Biological Plausibility First, Performance Second."**
+> **Identity note (v0.3.0+):** NurosOS has two parallel contribution tracks:
+>
+> 1. **The developmental substrate** (`nuros-dev/` crate + `experiments/` + `nuros/` Python package) — the v0.3.0+ track. Contributions here extend the experimental substrate for synthetic development.
+> 2. **The neuromorphic kernel** (`kernel/`, `core/`, `hal/` Rust crates) — the v0.1.0 track. Contributions here extend the SNN execution backend.
+>
+> Both tracks are welcome. The developmental substrate is the active research direction; the neuromorphic kernel is preserved as a future execution backend.
 
-Thank you for considering a contribution to NurosOS. This document describes how to add new neuro-synaptic models, fix bugs, and propose architectural changes.
+---
+
+## 0. Build & Test (Developmental Substrate)
+
+```bash
+# Prerequisites: Rust 1.75+, Python 3.10+, maturin
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source $HOME/.cargo/env
+pip install maturin
+
+# Build and install the Rust developmental substrate
+cd nuros-dev
+maturin build --release
+pip install --force-reinstall target/wheels/nuros_dev-*.whl
+# Copy the .so into the local nuros/ package for in-tree imports
+cp $(python -c "import nuros._dev, os; print(os.path.dirname(nuros._dev.__file__))")/_dev*.so ../nuros/
+cd ..
+
+# Run the test suite (75 tests)
+cd nuros-dev && cargo test --lib && cd ..
+python -m pytest nuros/tests/test_developmental_substrate.py -v
+
+# Run the flagship experiment
+python experiments/same_genome_different_world.py --steps 300
+```
 
 ---
 
 ## 1. Code of Conduct
 
-Be excellent to each other. We are building infrastructure for the next century of computing — there is no room for ego. Disagreements are settled by **data** (benchmarks, behavioral assays), not by reputation.
+Be excellent to each other. We are building infrastructure for the next century of computing — there is no room for ego. Disagreements are settled by **data** (benchmarks, behavioral assays, developmental trajectories), not by reputation.
 
 ---
 
-## 2. The Two Cardinal Rules
+## 2. The Cardinal Rules
 
-### Rule 1: Biological Plausibility First
+### Rule 1: Scientific Honesty
 
-Every PR must include a **biological justification**. If you are adding a new neuron model, cite the cell type it models and the paper that characterizes it. If you are optimizing an existing one, show that the optimization does not degrade the Fly Benchmark score.
+Every PR must label its claims with one of: `[IMPLEMENTED]`, `[EXPERIMENTAL]`, `[PROPOSED]`, `[SPECULATIVE]`. Documentation must never imply that an unimplemented concept already exists. Avoid phrases such as "creates consciousness", "creates life", "solves cognition", "achieves sentience" unless explicitly discussing them as open hypotheses.
+
+### Rule 2: Reproducibility
+
+Every experiment must produce a `ReproducibilityManifest`. Every claim must ship with a runnable experiment. Two runs with the same manifest values must produce identical trajectories (within documented tolerance).
+
+### Rule 3: Pass the Test Suite
+
+All PRs to `main` must pass:
+- 57 Rust unit tests (`cd nuros-dev && cargo test --lib`)
+- 18 Python integration tests (`pytest nuros/tests/test_developmental_substrate.py`)
+- 33 existing cognitive-layer tests (`pytest nuros/tests/test_core.py`)
+
+If your change degrades any test, your PR will be rejected unless you can demonstrate that the new behavior is **more correct** than the old one (in which case, update the tests too).
+
+### Rule 4: Biological Plausibility (for kernel/ PRs)
+
+For PRs to the neuromorphic kernel (`kernel/`, `core/`, `hal/`), every change must include a **biological justification**. If you are adding a new neuron model, cite the cell type it models and the paper that characterizes it. If you are optimizing an existing one, show that the optimization does not degrade the Fly Benchmark score.
 
 > ❌ *Bad commit message:* `"Optimized STDP update by 30%"`
-> ✅ *Good commit message:* `"Optimized STDP update by 30% by batching eligibility traces. Fly Benchmark score unchanged (0.87 → 0.87)."*
+> ✅ *Good commit message:* `"Optimized STDP update by 30% by batching eligibility traces. Fly Benchmark score unchanged (0.87 → 0.87)."`
 
-### Rule 2: Pass the Fly Benchmark
+### Rule 5: Pass the Fly Benchmark (for kernel/ PRs)
 
-All PRs to `main` must pass the [Fly Benchmark](../tests/README.md) suite. This is a set of behavioral tests that check whether the system's emergent behavior matches actual *Drosophila* responses (e.g., obstacle avoidance, phototaxis, courtship song production).
+All PRs to `main` that touch the neuromorphic kernel must pass the [Fly Benchmark](../tests/README.md) suite. This is a set of behavioral tests that check whether the system's emergent behavior matches actual *Drosophila* responses (e.g., obstacle avoidance, phototaxis, courtship song production).
 
 If your change degrades the benchmark, your PR will be rejected unless you can demonstrate that the new behavior is **more biologically accurate** than the old one (in which case, update the benchmark too).
 

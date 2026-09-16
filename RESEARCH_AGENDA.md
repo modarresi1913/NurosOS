@@ -2,95 +2,158 @@
 
 ## Guiding Question
 
-> What are the computational conditions under which artificial systems can develop memory, agency, prediction, adaptation, self-modeling, and embodied behavior?
+> What happens when we stop programming the final behavior of an artificial
+> mind and instead program the conditions under which its cognitive structure
+> can develop?
+
+The fundamental object is not `MODEL` but `TRAJECTORY`; not `AGENT` but
+`DEVELOPING ORGANISM`. The research agenda is organized around characterizing
+how artificial cognitive trajectories emerge, stabilize, adapt, diverge,
+and evolve.
 
 ---
 
-## Phase 1: Foundations (0-6 months)
+## Phase 1: Foundations — [IMPLEMENTED] ✅
 
 ### R1: Epistemic Integrity Verification
-**Status**: In Progress  
-**Question**: Can we formally verify that no epistemic violation goes undetected?  
-**Approach**: Model the epistemic transition graph, prove completeness of forbidden transition detection.  
-**Deliverable**: Formal verification, 100% transition coverage test suite.
+**Status**: [IMPLEMENTED] in `nuros/epistemic.py`
+**Question**: Can we formally verify that no epistemic violation goes undetected?
+**Deliverable**: 7 labels, forbidden-transition table, override mechanism, 33 tests.
 
-### R2: Memory Decay Dynamics
-**Status**: Planned  
-**Question**: What decay functions produce the most useful memory profiles?  
-**Approach**: Compare exponential, power-law, and adaptive decay across synthetic environments.  
-**Deliverable**: Parameterized decay framework, benchmark results.
+### R2: Developmental Substrate Primitives
+**Status**: [IMPLEMENTED] in `nuros-dev` crate (Phases 2-8)
+**Question**: Can we build the runtime, interfaces, environments, developmental
+mechanisms, observability, and reproducibility infrastructure required to
+instantiate, develop, measure, fork, replay, and compare artificial cognitive
+systems?
+**Deliverable**: `DevelopmentalGenome`, `DevelopmentalState`, `LifecycleMachine`,
+`ResourceWorld`, `ChangingWorld`, `MinimumOrganism`, `DevelopmentalTrajectory`,
+`MindCheckpoint`, `ReplayFidelity`, `MindDiff`, `DevelopmentalCausalityGraph`,
+`DevelopmentalTelemetry`, `ReproducibilityManifest`. 57 Rust tests + 18 Python
+integration tests passing.
 
-### R3: Homeostatic Regulation Convergence
-**Status**: Planned  
-**Question**: Under what conditions does the homeostatic kernel converge to stable states?  
-**Approach**: Analyze regulation dynamics as a dynamical system.  
-**Deliverable**: Convergence proofs (simple), empirical characterization (complex).
-
-### R4: Organism Ladder Validation
-**Status**: Planned  
-**Question**: Does each organism level genuinely exhibit emergent capabilities?  
-**Approach**: Design capability tests that pass at level N but fail at N-1.  
-**Deliverable**: Capability differentiation test suite.
-
----
-
-## Phase 2: Mechanisms (6-18 months)
-
-### R5: Developmental Plasticity Laws
-**Question**: What plasticity rules produce the most adaptive developmental trajectories?  
-**Approach**: Systematic exploration of Hebbian, anti-Hebbian, reward-modulated, predictive rules.  
-**Deliverable**: Plasticity rule benchmark, recommended defaults.
-
-### R6: Self-Model Accuracy Bounds
-**Question**: What are the fundamental limits on self-model accuracy?  
-**Approach**: Information-theoretic analysis of self-referential systems.  
-**Deliverable**: Theoretical bounds, empirical measurements.
-
-### R7: Imagination-Safety Integration
-**Question**: How can imagination remain useful while guaranteeing safety?  
-**Approach**: Risk estimation for counterfactual simulations, safety proofs.  
-**Deliverable**: Safe imagination framework, risk benchmarks.
-
-### R8: Reproducibility Framework
-**Question**: Can we guarantee identical genome + experience + runtime = identical behavior?  
-**Approach**: Hash-based verification, deterministic execution mode.  
-**Deliverable**: Reproducibility tool, verification reports.
+### R3: Computational Developmental Divergence
+**Status**: [IMPLEMENTED] as the flagship experiment
+**Question**: Do identical initial computational conditions produce divergent
+developmental states under different environmental histories?
+**Approach**: Instantiate two organisms from the same genome, place them in
+differently-seeded `ResourceWorld`s, develop both, measure divergence.
+**Deliverable**: `experiments/same_genome_different_world.py`. Demonstrates
+non-zero divergence across reward, prediction-error, action, and state
+dimensions.
+**Interpretation caveat**: This is NOT evidence of consciousness or biological
+individuality. It is an observable computational fact about divergent
+developmental trajectories.
 
 ---
 
-## Phase 3: Emergence (18-36 months)
+## Phase 2: Characterization (0-6 months)
 
-### R9: Artificial Ontogenesis
-**Question**: Can organisms undergo genuine developmental trajectories?  
-**Approach**: Design milestones, study transitions, measure trajectories.  
-**Deliverable**: Milestone framework, trajectory analysis.
+### R4: Plasticity vs. Stability Trade-offs
+**Status**: [PROPOSED]
+**Question**: What measurable trade-offs exist between plasticity and stability?
+**Approach**: Sweep the `plasticity_rules.learning_rate` parameter across many
+seed pairs; measure how developmental divergence, prediction accuracy, and
+stability vary.
+**Deliverable**: Trade-off curves, recommended defaults.
 
-### R10: Multi-Organism Ecosystems
-**Question**: What emergent behaviors arise from organism populations?  
-**Approach**: Design ecosystems, study cooperation/competition.  
-**Deliverable**: Ecosystem simulation, emergent behavior catalog.
+### R5: Environmental Complexity and Specialization
+**Status**: [PROPOSED]
+**Question**: Does environmental complexity accelerate specialization?
+**Approach**: Compare developmental trajectories across environments of
+varying complexity (ResourceWorld with different hazard/resource densities,
+ChangingWorld with different shift intervals).
+**Deliverable**: Specialization rate as a function of environmental complexity.
 
-### R11: Value Alignment Dynamics
-**Question**: How do value systems evolve, and can they remain aligned?  
-**Approach**: Study value drift under various experience distributions.  
-**Deliverable**: Drift measurement, alignment preservation mechanisms.
+### R6: Memory Capacity and Trajectory Shape
+**Status**: [PROPOSED]
+**Question**: Does memory capacity alter developmental trajectories?
+**Approach**: Vary the memory cap in `MinimumOrganism`; measure trajectory
+divergence, prediction accuracy, and capability emergence.
+**Deliverable**: Memory-capacity sensitivity analysis.
 
-### R12: Consciousness Indicators
-**Question**: Are there measurable indicators of conscious-like vs non-conscious-like systems?  
-**Approach**: Design tests based on IIT, GWT, and Higher-Order theories.  
-**Deliverable**: Indicator test suite, results per organism level.
+### R7: Prediction Accuracy and Exploration
+**Status**: [PROPOSED]
+**Question**: Does prediction accuracy influence exploration?
+**Approach**: Measure the correlation between rolling prediction accuracy and
+exploration level across many trajectories.
+**Deliverable**: Correlation analysis, possible causal model.
+
+---
+
+## Phase 3: Counterfactual & Possible Selves (6-18 months)
+
+### R8: Counterfactual Developmental Histories
+**Status**: [PROPOSED] (Phase 11 of the roadmap)
+**Question**: Can counterfactual developmental histories improve planning?
+**Approach**: Implement `CounterfactualSelf`; let the organism evaluate "What
+if environment E2 had occurred?" and measure whether this improves future
+decisions.
+**Deliverable**: Counterfactual planning benchmark.
+
+### R9: Possible-Self Space
+**Status**: [PROPOSED] (Phase 11)
+**Question**: Can the organism be represented as a space of reachable
+developmental states rather than a single static state?
+**Approach**: Extend `CounterfactualSelf` into `PossibleSelfSpace`; sample
+alternative futures; measure coverage and stability.
+**Deliverable**: Possible-self space visualization and metrics.
+
+---
+
+## Phase 4: Metabolism & Aging (18-36 months)
+
+### R10: Cognitive Metabolism
+**Status**: [PROPOSED] (Phase 12)
+**Question**: How do resource constraints (attention, inference, memory,
+exploration, uncertainty, risk, energy budgets) shape developmental
+trajectories?
+**Approach**: Implement `CognitiveMetabolism`; vary budgets; measure
+trade-offs.
+**Deliverable**: Metabolic trade-off curves, "Is this information worth the
+cognitive cost?" decision rule.
+
+### R11: Artificial Aging
+**Status**: [PROPOSED] (Phase 13)
+**Question**: How does accumulated computational history affect future
+cognition?
+**Approach**: Implement `AgingModel` with configurable aging dimensions;
+measure how aging alters plasticity, stability, and capability.
+**Deliverable**: Aging trajectory characterization.
+
+---
+
+## Phase 5: Evolution (36+ months)
+
+### R12: Artificial Evolution on DevelopmentalGenome
+**Status**: [PROPOSED] (Phase 14)
+**Question**: Can populations of artificial organisms develop useful behavioral
+diversity through evolution on the genome?
+**Approach**: Implement `ArtificialEvolution` with mutation, selection,
+variation, inheritance, evaluation operating on `DevelopmentalGenome`.
+**Deliverable**: Population dynamics, diversity metrics, evolved genomes.
+**Constraint**: Only after deterministic developmental experiments are
+functional.
 
 ---
 
 ## Open Questions
 
-1. What is the minimum organism level for genuine goal-directed behavior?
-2. Can self-models achieve stable self-reference without paradox?
-3. What role does embodiment play in spatial reasoning development?
-4. Can artificial dreaming improve learning efficiency?
-5. How should responsibility be attributed in multi-organism systems?
-6. Is there a computational complexity barrier for self-modeling?
-7. What is the relationship between epistemic depth and cognitive capability?
+These are research questions, not predetermined conclusions:
+
+1. Can developmental trajectories produce stable computational individuality?
+2. How does environmental history alter identical initial architectures?
+3. What measurable trade-offs exist between plasticity and stability?
+4. Can artificial cognitive capabilities emerge through development rather
+   than explicit programming?
+5. How does accumulated experience alter future behavior?
+6. Can cognitive trajectories be reproduced experimentally?
+7. Can counterfactual developmental histories improve planning?
+8. What computational constraints govern artificial cognitive development?
+9. Can artificial organisms specialize without explicit specialization
+   programming?
+10. Which properties of cognition are architecture-dependent versus
+    development-dependent?
 
 ---
 
@@ -98,8 +161,13 @@
 
 Every research item follows these principles:
 
-1. **Reproducible**: Every claim ships with a runnable experiment
+1. **Reproducible**: Every claim ships with a runnable experiment and a
+   `ReproducibilityManifest`.
 2. **Epistemically honest**: Results are labeled with their epistemic status
-3. **Safety-first**: Experiments never compromise safety invariants
-4. **Incremental**: Each result builds on verified foundations
-5. **Open**: All code, data, and analysis are open-source
+   (`[IMPLEMENTED]`, `[EXPERIMENTAL]`, `[PROPOSED]`, `[SPECULATIVE]`).
+3. **Safety-first**: Experiments never compromise safety invariants.
+4. **Incremental**: Each result builds on verified foundations.
+5. **Open**: All code, data, and analysis are open-source.
+6. **Interpretation-cautious**: Divergence is not individuality; simulation
+   is not observation; development is not deployment; intelligence is not
+   consciousness.

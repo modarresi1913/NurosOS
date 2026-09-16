@@ -4,38 +4,60 @@
 
 ## One-sentence description
 
-NurosOS is an open-source, Apache-2.0 licensed neuromorphic operating system, written in Rust and Python, that runs the complete *Drosophila melanogaster* connectome (125 million synapses) as an event-driven spiking neural network for picojoule-class cognitive computing on neuromorphic silicon such as Intel Loihi 2.
+NurosOS is an open-source, Apache-2.0 licensed experimental substrate for synthetic development, written in Rust and Python, that lets researchers instantiate artificial organisms from a developmental genome, place them in deterministic environments, develop them, and experimentally measure how their cognitive trajectories diverge, stabilize, adapt, and compare.
 
 ## What problem does it solve?
 
-The **Von Neumann bottleneck**: traditional computing separates memory (DRAM) from compute (ALU), so every operation pays a ~10 nJ data-movement tax — 1000× more than the arithmetic itself. Modern GPUs executing transformers move ~10¹² bytes/sec between memory and compute, with energy dominated by *fetching*, not *computing*.
+Traditional AI follows the inversion `Model → Training → Agent`. This produces systems whose behavior is fully specified by training, with no room for development through experience. NurosOS inverts this again:
+
+```
+Developmental Genome → Environment → Experience → Development
+                    → Individual Cognitive Trajectory → Artificial Organism
+```
+
+The fundamental object is therefore not `MODEL` but `TRAJECTORY`; not `AGENT` but `DEVELOPING ORGANISM`. NurosOS provides the substrate to study how artificial minds develop, not just how to execute them efficiently.
 
 ## How does it solve it?
 
-Two mechanisms, both directly modeled on biology:
+The `nuros-dev` crate (Rust + PyO3) provides:
 
-1. **Sparse Propagation Protocol (SPP):** Only 3–5% of neurons are active per cycle (matching *Drosophila* central-brain observations). A neuron that doesn't fire consumes ~1000× less energy than one that does.
-2. **Collocated memory and compute:** In NurosOS, the memory *is* the synapse — there is no separate DRAM fetch step. On Intel Loihi 2, all state lives on-chip.
+1. **Developmental primitives** — `DevelopmentalGenome`, `DevelopmentalState`, `LifecycleMachine`, `MindCheckpoint`, `ReplayFidelity`, `MindDiff`, `DevelopmentalCausalityGraph`.
+2. **Deterministic environments** — `ResourceWorld` (2D grid with resources and hazards) and `ChangingWorld` (1D world with shifting resource).
+3. **Minimum organism** — a deterministic cognitive engine that exercises the full developmental loop (sensation → prediction → memory → self-model → values → decision → action → learning → development).
+4. **Reproducibility infrastructure** — `DevelopmentalTelemetry` (JSONL+CSV) and `ReproducibilityManifest` for every experiment.
+5. **Flagship experiment** — *Same Genome / Different World*: two organisms from the same genome, in differently-seeded environments, with measurable **Computational Developmental Divergence**.
 
-## Headline numbers
+## Headline result (flagship experiment)
 
-| Metric | PyTorch / A100 GPU | NurosOS (x86 emulation) | NurosOS (Loihi 2 target) |
-|---|---|---|---|
-| Energy per inference | 18 mJ | 2.1 mJ | **0.014 mJ** |
-| Latency (p50) | 410 µs | 95 µs | **6 µs** |
-| Improvement vs. GPU | — | 8.6× | **1286×** |
+For `genome_name=flagship`, `steps=300`, `env_a_seed=1`, `env_b_seed=999`:
+
+| Metric | Value |
+|--------|-------|
+| reward_distance | 1.4341 |
+| prediction_error_distance | 1.3941 |
+| action_distance | 2 / 300 |
+| mean_state_distance | 0.0019 |
+| stage_divergence | False |
+
+The two organisms, instantiated from the SAME genome and run with the SAME random seed, produced DIFFERENT developmental trajectories because they developed in DIFFERENT environments. This is **Computational Developmental Divergence** — an observable computational fact, NOT evidence of consciousness or biological individuality.
 
 ## Architecture in one paragraph
 
-A three-layer stack. **Layer 1** is a Rust microkernel with an event-driven scheduler (SPP) that enforces a 5% sparsity cap, zero-copy SPSC ring buffers for synaptic channels, and an Associative Memory Store (AMS) that replaces the filesystem with content-addressed retrieval. **Layer 2** is SynapseLang, a Python DSL that compiles high-level cognitive function descriptions (pattern recognition, associative memory) into hardware-agnostic NIR bytecode. **Layer 3** is a Rust Hardware Abstraction Layer (HAL) with a trait-based interface to neuromorphic silicon (Intel Loihi 2, IBM TrueNorth, custom FPGA), including dynamic remapping — a neuroplasticity emulation that reroutes through alternative pathways when a physical core fails.
+A two-layer stack. **Layer 1** is the `nuros-dev` Rust crate, exposed to Python via PyO3 as `nuros._dev`. It provides the developmental substrate: genome, state, lifecycle, environments, organism, trajectory, checkpoint, replay, diff, causality, telemetry, and manifest. **Layer 2** is the Python cognitive layer (`nuros/` package) with mind contracts (memory, self-model, imagination, values, body, responsibility), epistemic kernel, homeostasis, safety, and the existing Organism-0 through Organism-5 ladder. A future v0.4.0 will bridge the Rust SNN substrate (kernel, core, hal crates from v0.1.0) as an execution backend for the developmental substrate.
 
 ## Key technical keywords
 
-`neuromorphic operating system`, `spiking neural networks`, `Drosophila connectome`, `event-driven scheduler`, `Sparse Propagation Protocol`, `SynapseLang`, `NIR bytecode`, `Associative Memory Store`, `zero-copy IPC`, `STDP plasticity`, `LIF neuron model`, `Intel Loihi 2`, `Von Neumann bottleneck`, `picojoule computing`, `bio-inspired computing`, `compensatory sprouting`, `mushroom body`, `antennal lobe`, `central complex`, `Kenyon cells`, `Rust no_std kernel`, `Python DSL compiler`.
+`artificial development`, `synthetic development`, `developmental substrate`, `developmental trajectory`, `computational developmental divergence`, `developmental genome`, `mind checkpoint`, `mind diff`, `reproducibility manifest`, `causality graph`, `artificial ontogenesis`, `cognitive systems`, `synthetic minds`, `deterministic cognitive engine`, `Same Genome Different World`, `PyO3 bindings`, `Rust`, `Python`, `epistemic kernel`, `mind contracts`, `safety kernel`.
 
 ## Status and license
 
-- **Version:** 0.1.0-alpha (research software, x86_64 emulation only)
+- **Version:** 0.3.0-alpha (developmental substrate; research software)
 - **License:** Apache-2.0
 - **Languages:** Rust 1.75+, Python 3.10+
+- **Tests:** 75 passing (57 Rust + 18 Python integration)
 - **Repository:** https://github.com/modarresi1913/NurosOS
+- **Flagship experiment:** `python experiments/same_genome_different_world.py --steps 300`
+
+## Interpretation caveats
+
+NurosOS does NOT implement consciousness. It does NOT create biological life. It does NOT solve artificial consciousness. The divergence measured by the flagship experiment is an observable computational fact, not evidence of subjective experience. The objective is to build the infrastructure that lets us experimentally investigate how increasingly complex artificial cognition can emerge, stabilize, adapt, diverge, and evolve.

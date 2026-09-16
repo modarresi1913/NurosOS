@@ -1,18 +1,192 @@
-# WHITEPAPER — NurosOS: Reversing the Von Neumann Bottleneck with Connectomic Computing
+# WHITEPAPER — NurosOS: The Experimental Substrate for Synthetic Development
 
-**Version:** 1.0 (Draft)
+**Version:** 2.0 (Draft)
 **Date:** 2026
 **Status:** Open for community review
+
+> **Identity note (v2.0):** NurosOS has evolved from a neuromorphic operating
+> system focused on reversing the Von Neumann bottleneck (v1.0) into an
+> experimental substrate for synthetic development (v2.0). The connectomics
+> and SNN substrate work from v1.0 remains as a future execution backend;
+> the central research object is now the **developmental trajectory** of an
+> artificial organism, not the energy efficiency of a single inference.
 
 ---
 
 ## Abstract
 
-For 80 years, computing has been dominated by the Von Neumann architecture: a single processor that fetches instructions and data from a passive memory over a shared bus. This separation of compute and memory is the **Von Neumann bottleneck** — and despite decades of caching, pipelining, and speculation, it remains the fundamental limit on energy efficiency for intelligent workloads. NurosOS is a new operating system that eliminates this bottleneck by treating memory and computation as the same physical substrate: a sparse, weighted graph of neurons connected by synapses. The structural template for this graph is the complete connectome of *Drosophila melanogaster*, published in 2026. This whitepaper explains how NurosOS translates connectomics into a runnable software substrate and quantifies the resulting efficiency gains.
+NurosOS is an open, modular, inspectable substrate for synthetic development —
+a runtime in which artificial organisms can be instantiated, developed,
+embodied, observed, measured, forked, replayed, and experimentally compared.
+
+The central research question is:
+
+> What happens when we stop programming the final behavior of an artificial
+> mind and instead program the conditions under which its cognitive structure
+> can develop?
+
+Traditional AI follows the inversion `Model → Training → Agent`. NurosOS
+inverts this again: `Developmental Genome → Environment → Experience →
+Development → Individual Cognitive Trajectory → Artificial Organism`. The
+fundamental object is therefore not `MODEL` but `TRAJECTORY`; not `AGENT` but
+`DEVELOPING ORGANISM`.
+
+This whitepaper describes the developmental substrate (the `nuros-dev` crate,
+implemented in Rust with Python bindings), the flagship *Same Genome /
+Different World* experiment that demonstrates **Computational Developmental
+Divergence**, and the relationship between the new developmental thesis and
+the v1.0 neuromorphic-hardware thesis.
+
+**Interpretation caveat.** NurosOS does not implement consciousness. It does
+not create biological life. It does not solve artificial consciousness. The
+divergence measured by the flagship experiment is an observable computational
+fact, not evidence of subjective experience.
 
 ---
 
-## 1. The Von Neumann Bottleneck, Restated
+## 1. From Operating System to Experimental Substrate
+
+### 1.1 The v1.0 thesis (preserved as historical context)
+
+The original NurosOS whitepaper (v1.0) argued that the Von Neumann bottleneck
+could be reversed by treating memory and computation as the same physical
+substrate — a sparse, weighted graph of neurons connected by synapses, with
+the *Drosophila melanogaster* connectome as the structural template. That
+thesis remains valid as a hardware-execution strategy and is preserved in
+§3–§5 below.
+
+### 1.2 The v2.0 thesis (current)
+
+The v1.0 thesis answered: *how do we compute efficiently?* The v2.0 thesis
+answers a different question: *how do artificial minds develop?*
+
+Even if we had perfect picojoule-class neuromorphic hardware, we would still
+not know how to specify the conditions under which an artificial cognitive
+system develops memory, agency, prediction, adaptation, self-modeling, and
+embodied behavior. That question is orthogonal to hardware efficiency — and
+it is the question NurosOS now addresses.
+
+The shift is from **runtime** to **experimental substrate**:
+
+| Aspect | v1.0 (Runtime) | v2.0 (Substrate) |
+|--------|----------------|------------------|
+| Central object | Model | Trajectory |
+| Primitive | Agent | Developing Organism |
+| Goal | Execute cognition efficiently | Study how cognition develops |
+| Reproducibility unit | Inference hash | ReproducibilityManifest |
+| Comparison unit | Benchmark score | DevelopmentalDivergence |
+| Flagship experiment | SPP throughput vs. GPU | Same Genome / Different World |
+
+### 1.3 What the v2.0 substrate provides
+
+The `nuros-dev` crate (Rust + PyO3) provides the runtime, interfaces,
+environments, developmental mechanisms, observability, and reproducibility
+infrastructure required to instantiate, develop, measure, fork, replay, and
+compare artificial cognitive systems. Specifically:
+
+- `DevelopmentalGenome` — a serializable, hashable specification of an
+  organism's initial developmental conditions.
+- `DevelopmentalState` — a vector-valued observable state with an L1
+  distance metric.
+- `LifecycleMachine` — an auditable state machine for the organism's
+  operational state.
+- `ResourceWorld` + `ChangingWorld` — deterministic environments for
+  developmental experiments.
+- `MinimumOrganism` — a deterministic cognitive engine that exercises the
+  full developmental loop.
+- `DevelopmentalTrajectory` + `DevelopmentalDivergence` — quantitative
+  comparison of trajectories.
+- `MindCheckpoint` + `ReplayFidelity` — save, restore, and replay with
+  explicit fidelity classification (EXACT / APPROXIMATE / NON_REPRODUCIBLE).
+- `MindDiff` — structured comparison of two organism states across memory,
+  self-model, values, capabilities, prediction, behavior, and developmental
+  state.
+- `DevelopmentalCausalityGraph` — a provenance DAG with causal trace walks.
+- `DevelopmentalTelemetry` — JSONL + CSV export for offline analysis.
+- `ReproducibilityManifest` — machine-readable provenance for every
+  experiment.
+
+---
+
+## 2. The Flagship Experiment: Same Genome / Different World
+
+### 2.1 Hypothesis
+
+Identical initial computational conditions (same genome, same runtime, same
+random seed) can produce divergent developmental states under different
+environmental histories.
+
+### 2.2 Method
+
+1. Construct a single `DevelopmentalGenome` G.
+2. Instantiate two organisms A and B from G.
+3. Verify `genome_hash(A) == genome_hash(B)`.
+4. Place A in `ResourceWorld(seed=env_a_seed)` and B in
+   `ResourceWorld(seed=env_b_seed)`.
+5. Develop both for N steps.
+6. Record trajectories, telemetry, and final checkpoints.
+7. Compute `DevelopmentalDivergence(A, B)`.
+8. Compute `MindDiff` between final states of A and B.
+9. Build `ReproducibilityManifest` for each organism.
+
+### 2.3 Result
+
+For `genome_name=flagship`, `steps=300`, `env_a_seed=1`, `env_b_seed=999`:
+
+```
+reward_distance:        1.4341
+prediction_error_dist:  1.3941
+action_distance:        2 / 300
+mean_state_distance:    0.0019
+stage_divergence:       False
+```
+
+The two organisms, instantiated from the SAME genome and run with the SAME
+random seed, produced DIFFERENT developmental trajectories because they
+developed in DIFFERENT environments.
+
+### 2.4 Interpretation
+
+We call this phenomenon **Computational Developmental Divergence**. It is an
+observable computational fact about divergent developmental trajectories. It
+is NOT evidence of:
+
+- consciousness,
+- biological individuality,
+- subjective experience,
+- artificial life,
+- sentience.
+
+The scientific interest is in characterizing *how* this divergence emerges
+as a function of environmental structure, genome parameters, and runtime
+properties — not in claiming that the divergence is anything more than
+divergence.
+
+### 2.5 Reproducibility
+
+Every run of the flagship experiment produces a `ReproducibilityManifest`
+for each organism, recording: `mind_id`, `genome_hash`, `runtime_hash`,
+`environment_hash`, `experiment_hash`, `random_seed`, `environment_seed`,
+`checkpoint_hash`, `configuration_hash`, `dependency_versions`, `timestamp`,
+`n_steps`, `limitations`. Two runs with the same manifest values produce
+identical trajectories (verified by 57 Rust unit tests + 18 Python
+integration tests).
+
+---
+
+## 3. The v1.0 Neuromorphic Hardware Thesis (Preserved)
+
+The remainder of this whitepaper preserves the v1.0 thesis on reversing the
+Von Neumann bottleneck. This work remains relevant as a future execution
+backend for the developmental substrate: when the `MinimumOrganism` cognitive
+engine is eventually replaced by an SNN backend, the SPP scheduler and HAL
+described below will be the execution layer.
+
+---
+
+## 4. The Von Neumann Bottleneck, Restated (v1.0)
+
+For 80 years, computing has been dominated by the Von Neumann architecture: a single processor that fetches instructions and data from a passive memory over a shared bus. This separation of compute and memory is the **Von Neumann bottleneck** — and despite decades of caching, pipelining, and speculation, it remains the fundamental limit on energy efficiency for intelligent workloads. NurosOS (v1.0) aimed to eliminate this bottleneck by treating memory and computation as the same physical substrate: a sparse, weighted graph of neurons connected by synapses. The structural template for this graph is the complete connectome of *Drosophila melanogaster*, published in 2026.
 
 A modern GPU executing a transformer forward pass moves ~10¹² bytes between DRAM and on-chip SRAM per second. Each byte costs ~10 nJ to move. The arithmetic itself costs ~10 pJ per MAC. **The energy is dominated by data movement, not computation** — by a factor of 1000×.
 
@@ -22,7 +196,7 @@ Biology does not have this problem. In a biological neuron, the memory *is* the 
 
 ---
 
-## 2. The 2026 Connectomics Breakthrough
+## 5. The 2026 Connectomics Breakthrough (v1.0)
 
 In 2026, the open connectomics community released the complete wiring diagram of the adult male *Drosophila melanogaster* brain. The dataset contains:
 
@@ -47,7 +221,7 @@ Drosophila is the right starting point: complex enough to be interesting, simple
 
 ---
 
-## 3. From Connectome to Operating System
+## 6. From Connectome to Operating System (v1.0)
 
 NurosOS performs four translations on the connectome data:
 
@@ -86,7 +260,7 @@ This means the OS does not just *run on* biological principles — its API surfa
 
 ---
 
-## 4. The Sparse Propagation Protocol
+## 7. The Sparse Propagation Protocol (v1.0)
 
 (See `ARCHITECTURE.md` §3 for the algorithmic specification.)
 
@@ -96,7 +270,7 @@ This is the single most important contribution of NurosOS. Every other feature (
 
 ---
 
-## 5. Reversing the Bottleneck — Quantitative Analysis
+## 8. Reversing the Bottleneck — Quantitative Analysis (v1.0)
 
 ### 5.1 Methodology
 
@@ -124,7 +298,7 @@ A GPU cannot simply "skip" the 95% of weights that are irrelevant for a given in
 
 ---
 
-## 6. Implications
+## 9. Implications (v1.0)
 
 ### 6.1 For AI hardware
 The 1000× power reduction target (v0.3.0 milestone) is achievable on existing neuromorphic silicon. The bottleneck is software, not hardware.
@@ -137,7 +311,7 @@ The "Digital Twin" library (v1.0.0) will allow pharmaceutical researchers to sim
 
 ---
 
-## 7. Limitations & Honest Caveats
+## 10. Limitations & Honest Caveats
 
 - **NurosOS does not implement consciousness.** It implements *behavioral competence*. The gap between the two is unknown.
 - **The connectome is necessary but not sufficient.** It captures structure, not dynamics. We must supply plausible dynamics (LIF, STDP) and validate against data.
@@ -146,11 +320,24 @@ The "Digital Twin" library (v1.0.0) will allow pharmaceutical researchers to sim
 
 ---
 
-## 8. Conclusion
+## 11. Conclusion
 
-NurosOS demonstrates that the Von Neumann bottleneck is not a law of nature — it is a consequence of a particular architectural choice made in 1945. By adopting the architectural choice biology made ~600 million years ago, we can recover the energy efficiency that traditional computing has been chasing for 80 years.
+NurosOS v2.0 is an experimental substrate for synthetic development. The v1.0
+thesis — reversing the Von Neumann bottleneck with connectomic computing —
+remains as a future execution backend. The v2.0 thesis is orthogonal: how do
+artificial minds develop?
 
-The 2026 connectomics breakthrough gives us the blueprint. NurosOS is the build system.
+The fundamental object is not `MODEL` but `TRAJECTORY`; not `AGENT` but
+`DEVELOPING ORGANISM`. The flagship *Same Genome / Different World* experiment
+demonstrates **Computational Developmental Divergence** — identical initial
+computational conditions producing divergent developmental states under
+different environmental histories. This is an observable computational fact,
+not evidence of consciousness.
+
+The objective is not to claim that a machine has become conscious. The
+objective is to build the infrastructure that lets us experimentally
+investigate how increasingly complex artificial cognition can emerge,
+stabilize, adapt, diverge, and evolve.
 
 ---
 

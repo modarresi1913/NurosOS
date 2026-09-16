@@ -2,49 +2,61 @@
 
 ## The Central Thesis
 
-We don't want to merely build larger models. We want to explore the **computational conditions** under which artificial systems can develop memory, agency, prediction, adaptation, self-modeling, and embodied behavior.
+> **NurosOS is an experimental substrate for studying how artificial minds develop.**
 
-NurosOS is not an operating system for AI. It is a **runtime for systems that can become intelligent** — a substrate where artificial cognitive organisms can instantiate, develop through experience, maintain internal state, interact with environments, undergo plasticity, construct memories, model themselves, simulate futures, and remain observable and corrigible.
+The fundamental object is not `MODEL` but `TRAJECTORY`; not `AGENT` but `DEVELOPING ORGANISM`. NurosOS provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems.
 
 This is **Synthetic Development**: programming the conditions for mind development, not the mind itself.
 
+> **Interpretation caveat:** NurosOS does not implement consciousness. It does not create biological life. The divergence measured by the flagship experiment is an observable computational fact, not evidence of subjective experience.
+
 ---
 
-## Layer Architecture
+## Layer Architecture (v0.3.0+)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      Applications                        │
-├─────────────────────────────────────────────────────────┤
-│                  Artificial Organisms                     │
-│            (Organism-0 → Organism-5 Ladder)              │
-├─────────────────────────────────────────────────────────┤
-│              Mind Contract Layer (MCL)                    │
-│  ┌──────────┐ ┌──────────┐ ┌──────────────┐            │
-│  │  Memory  │ │ SelfModel│ │ Imagination  │            │
-│  ├──────────┤ ├──────────┤ ├──────────────┤            │
-│  │ Values   │ │  Body    │ │Responsibility│            │
-│  └──────────┘ └──────────┘ └──────────────┘            │
-├─────────────────────────────────────────────────────────┤
-│                Cognitive Kernel                           │
-│   Attention │ Planning │ Reflection │ Prediction         │
-│   WorldModel│ Uncertainty                              │
-├─────────────────────────────────────────────────────────┤
-│              Organismic Kernel                            │
-│   Homeostasis │ Development │ Plasticity                 │
-│   Energy │ Lifecycle │ Self-organization                 │
-├─────────────────────────────────────────────────────────┤
-│       Safety Kernel (architecturally independent)        │
-│   Permissions │ Audit │ Human Override │ Shutdown        │
-│   Recovery │ Immutable Constraints                      │
-├─────────────────────────────────────────────────────────┤
-│          Neural / Cognitive Execution Layer               │
-│   SNN │ LLM │ Symbolic │ Hybrid                         │
-├─────────────────────────────────────────────────────────┤
-│            Hardware Abstraction (HAL)                     │
-│   x86 │ ARM │ FPGA │ Loihi │ GPU                        │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      Experiments                            │
+│   same_genome_different_world.py  (flagship)                │
+├─────────────────────────────────────────────────────────────┤
+│              Developmental Substrate (nuros-dev)            │
+│   DevelopmentalGenome · DevelopmentalState · Lifecycle      │
+│   ResourceWorld · ChangingWorld · MinimumOrganism           │
+│   DevelopmentalTrajectory · DevelopmentalDivergence         │
+│   MindCheckpoint · ReplayFidelity · MindDiff                │
+│   DevelopmentalCausalityGraph · Telemetry · Manifest        │
+├─────────────────────────────────────────────────────────────┤
+│                  Artificial Organisms                       │
+│            (Organism-0 → Organism-5 Ladder)                │
+├─────────────────────────────────────────────────────────────┤
+│              Mind Contract Layer (MCL)                      │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐              │
+│  │  Memory  │ │ SelfModel│ │ Imagination  │              │
+│  ├──────────┤ ├──────────┤ ├──────────────┤              │
+│  │ Values   │ │  Body    │ │Responsibility│              │
+│  └──────────┘ └──────────┘ └──────────────┘              │
+├─────────────────────────────────────────────────────────────┤
+│                Cognitive Kernel                             │
+│   Attention │ Planning │ Reflection │ Prediction           │
+│   WorldModel│ Uncertainty                                  │
+├─────────────────────────────────────────────────────────────┤
+│              Organismic Kernel                              │
+│   Homeostasis │ Development │ Plasticity                   │
+│   Energy │ Lifecycle │ Self-organization                   │
+├─────────────────────────────────────────────────────────────┤
+│       Safety Kernel (architecturally independent)           │
+│   Permissions │ Audit │ Human Override │ Shutdown          │
+│   Recovery │ Immutable Constraints                          │
+├─────────────────────────────────────────────────────────────┤
+│          Neural / Cognitive Execution Layer                 │
+│   SNN │ LLM │ Symbolic │ Hybrid                            │
+├─────────────────────────────────────────────────────────────┤
+│            Hardware Abstraction (HAL)                       │
+│   x86 │ ARM │ FPGA │ Loihi │ GPU                           │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+The **Developmental Substrate** layer (new in v0.3.0) sits above the Mind Contract Layer and provides the experimental infrastructure: genome, state, lifecycle, environments, organism, trajectory, checkpoint, replay, diff, causality, telemetry, and manifest. It is implemented in Rust (`nuros-dev` crate) and exposed to Python via PyO3 (`nuros._dev` module).
 
 ---
 

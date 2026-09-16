@@ -1,0 +1,326 @@
+# NurosOS Developmental Substrate
+
+> **Status:** [IMPLEMENTED] Phases 1–9 of the developmental substrate roadmap.
+> [PROPOSED] Phases 10–14 (Observatory, CounterfactualSelf, Metabolism, Aging, Evolution).
+
+This document describes the `nuros-dev` crate — the Rust-backed developmental
+substrate that turns NurosOS from a runtime for AI agents into an experimental
+platform for synthetic development.
+
+---
+
+## Central Thesis
+
+> **NurosOS is an experimental substrate for studying how artificial minds develop.**
+
+The fundamental object is not `MODEL` but `TRAJECTORY`; not `AGENT` but
+`DEVELOPING ORGANISM`. The central research question is:
+
+> What happens when we stop programming the final behavior of an artificial
+> mind and instead program the conditions under which its cognitive structure
+> can develop?
+
+---
+
+## What Is Implemented
+
+### [IMPLEMENTED] Developmental Genome (`DevelopmentalGenome`)
+
+A serializable, hashable specification of an organism's initial developmental
+conditions. Includes: architecture, initial memory, initial capabilities,
+plasticity rules, biases, maturation schedule, homeostasis setpoints, energy
+model, and mutation parameters.
+
+- Canonical SHA-256 hash (`genome_hash`) — same logical genome always
+  produces the same hash, regardless of field declaration order.
+- JSON round-trip preserves the hash.
+- Used as the primary key in every checkpoint, trajectory, and manifest.
+
+### [IMPLEMENTED] Developmental State (`DevelopmentalState`)
+
+A vector-valued observable state of an organism at one point in time.
+Includes: age, developmental stage, maturity, plasticity, stability,
+adaptability, energy, cognitive load, memory capacity, prediction accuracy,
+self-model stability, exploration level, risk sensitivity, capabilities,
+and developmental event count.
+
+- L1 distance metric between two states (`state.distance(other)`).
+- Canonical hash for provenance.
+
+### [IMPLEMENTED] Lifecycle State Machine (`LifecycleMachine`)
+
+An explicit, auditable state machine for the organism's operational state:
+`CREATED → INITIALIZED → DEVELOPING → ACTIVE → ADAPTING → RECOVERING →
+CHECKPOINTED → FORKED → SUSPENDED → TERMINATED`.
+
+- Every transition is recorded with (from, to, step, reason).
+- Terminal state (`TERMINATED`) cannot be left.
+
+### [IMPLEMENTED] Environments (`ResourceWorld`, `ChangingWorld`)
+
+Two environments that exercise different aspects of development:
+
+- **`ResourceWorld`** — 2D grid with limited resources and hazards. The
+  organism must locate and consume resources while avoiding hazards.
+  Tests: energy regulation, exploration vs. exploitation, risk sensitivity.
+- **`ChangingWorld`** — 1D world where the resource location shifts at
+  fixed intervals. Tests: adaptation, plasticity, unlearning.
+
+Both environments are deterministic (given a fixed seed) and support:
+`reset()`, `observe()`, `step(action)`, `snapshot()`, `restore()`, `hash()`.
+
+### [IMPLEMENTED] Minimum Organism (`MinimumOrganism`)
+
+A deterministic cognitive engine that exercises the full developmental loop:
+
+```
+GENOME → INITIAL STATE → SENSATION → PREDICTION → PREDICTION ERROR
+       → MEMORY UPDATE → SELF-MODEL UPDATE → VALUE EVALUATION
+       → DECISION → ACTION → ENVIRONMENTAL CONSEQUENCE
+       → LEARNING → DEVELOPMENTAL UPDATE → NEW STATE → REPEAT
+```
+
+The engine is intentionally NOT an LLM, NOT a neural network, and NOT
+stochastic. It is an ε-greedy policy over a small action space, with
+hand-coded heuristic biases for environment-sensitivity. This makes
+trajectories fully reproducible and lets us isolate the effect of
+environment from the effect of engine.
+
+### [IMPLEMENTED] Developmental Trajectory + Divergence
+
+- `DevelopmentalTrajectory` — ordered list of `TrajectoryPoint` records.
+- `DevelopmentalDivergence` — quantitative comparison of two trajectories.
+  Metrics: reward distance, prediction-error distance, action distance,
+  mean state distance, final state distance, stage divergence, per-step
+  state distance series.
+
+### [IMPLEMENTED] Mind Checkpoint + Replay
+
+- `MindCheckpoint` — captures the full state needed to resume or analyze
+  an organism. Includes genome, environment snapshot, organism state,
+  runtime version, and provenance hashes.
+- `replay_from_checkpoint()` — deterministic replay from a checkpoint,
+  with explicit fidelity classification: `EXACT`, `APPROXIMATE`,
+  `NON_REPRODUCIBLE`.
+
+### [IMPLEMENTED] Mind Diff (`MindDiff`)
+
+Structured comparison of two organism states across: memory, self-model,
+values (action preferences), capabilities, prediction, behavior, and
+developmental state. Machine-readable JSON + human-readable rendering.
+
+### [IMPLEMENTED] Developmental Causality Graph
+
+A provenance DAG that records, for every cognitive change, the chain of
+events that produced it. Vocabulary: **causal trace**, **candidate causal
+dependency**, **provenance dependency**. NOT a claim of philosophical
+causality.
+
+### [IMPLEMENTED] Developmental Telemetry
+
+Per-step structured records exported as JSONL and CSV. Researchers can
+analyze trajectories outside NurosOS using any tool that reads these
+formats.
+
+### [IMPLEMENTED] Reproducibility Manifest
+
+A machine-readable document that records all the hashes and seeds needed
+to reproduce an experiment: `mind_id`, `genome_hash`, `runtime_hash`,
+`environment_hash`, `experiment_hash`, `random_seed`, `environment_seed`,
+`checkpoint_hash`, `configuration_hash`, `dependency_versions`, `timestamp`,
+`n_steps`, `limitations`.
+
+### [IMPLEMENTED] Same Genome / Different World Experiment
+
+The flagship experiment. Instantiates two organisms from the same genome,
+places them in differently-seeded `ResourceWorld`s, develops both, and
+computes the developmental divergence between them. Produces 13 artifacts:
+genome, trajectories (JSONL), telemetry (CSV), checkpoints, divergence,
+mind diff, manifests, report, and summary.
+
+---
+
+## What Is Proposed (Not Implemented)
+
+### [PROPOSED] Mind Observatory
+
+A visualization/observability layer for inspecting the full developmental
+loop. Currently only text rendering is available.
+
+### [PROPOSED] Counterfactual Self
+
+Allows an organism to evaluate alternative developmental histories
+("What if environment E2 had occurred?"). Architecture: CurrentSelf →
+CounterfactualGenerator → AlternativeTrajectory → Simulation → Evaluation.
+
+### [PROPOSED] Possible-Self Space
+
+Represents the organism as a space of reachable developmental states
+rather than a single static state.
+
+### [PROPOSED] Epistemic / Cognitive Metabolism
+
+Resource accounting for attention, inference, memory, exploration,
+uncertainty, risk, and energy. The organism should ask: "Is this
+information worth the cognitive cost?"
+
+### [PROPOSED] Artificial Aging
+
+An experimental aging model: memory degradation, plasticity changes,
+processing constraints, experience accumulation, structural consolidation.
+
+### [PROPOSED] Artificial Evolution
+
+Mutation, selection, variation, inheritance, evaluation operating on
+`DevelopmentalGenome`. To be implemented only after deterministic
+developmental experiments are functional.
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        experiments/                                  │
+│  same_genome_different_world.py — flagship experiment runner         │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                    nuros._dev (PyO3 bindings)                        │
+│  PyGenome · PyResourceWorld · PyChangingWorld · PyOrganism           │
+│  run_same_genome_different_world() · mind_diff()                     │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                    nuros-dev (Rust crate)                            │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
+│  │  hash    │ │  genome  │ │  state   │ │ lifecycle│ │environment│ │
+│  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤ │
+│  │ organism │ │trajectory│ │checkpoint│ │   diff   │ │causality │ │
+│  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤ ├──────────┤ │
+│  │telemetry │ │ manifest │ │          │ │          │ │          │ │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Quickstart
+
+### Build the Rust extension
+
+```bash
+cd nuros-dev
+maturin build --release
+pip install --force-reinstall target/wheels/nuros_dev-*.whl
+```
+
+### Run the flagship experiment
+
+```bash
+cd /path/to/NurosOS
+python experiments/same_genome_different_world.py \
+    --steps 200 --env-a-seed 1 --env-b-seed 999 \
+    --out-dir ./experiment_outputs/same_genome_different_world
+```
+
+### Run the test suite
+
+```bash
+# Rust unit tests (57 tests)
+cd nuros-dev && cargo test --lib
+
+# Python integration tests (18 tests)
+python -m pytest nuros/tests/test_developmental_substrate.py -v
+```
+
+### Use the substrate directly in Python
+
+```python
+from nuros import _dev
+
+# Construct a genome.
+genome = _dev.DevelopmentalGenome("my_experiment")
+print(f"genome_hash: {genome.hash}")
+
+# Instantiate two organisms from the same genome.
+org_a = _dev.MinimumOrganism(genome)
+org_b = _dev.MinimumOrganism(genome)
+assert org_a.genome_hash == org_b.genome_hash
+
+org_a.initialize(); org_a.begin_development()
+org_b.initialize(); org_b.begin_development()
+
+# Place each in a different environment.
+env_a = _dev.ResourceWorld(6, 6, seed=1)
+env_b = _dev.ResourceWorld(6, 6, seed=999)
+env_a.reset(); env_b.reset()
+
+# Develop both.
+for _ in range(100):
+    org_a.tick_resource(env_a)
+    org_b.tick_resource(env_b)
+
+# The two organisms now have different developmental states
+# despite sharing the same genome.
+print(f"organism A state_hash: {org_a.state_hash}")
+print(f"organism B state_hash: {org_b.state_hash}")
+assert org_a.state_hash != org_b.state_hash
+```
+
+---
+
+## Scientific Status Labels
+
+Every claim in NurosOS documentation is labeled with one of:
+
+| Label | Meaning |
+|-------|---------|
+| `[IMPLEMENTED]` | The feature is built, tested, and demonstrable. |
+| `[EXPERIMENTAL]` | The feature is built but not yet validated at scale. |
+| `[PROPOSED]` | The interface is designed; implementation is planned. |
+| `[SPECULATIVE]` | The concept is described but not yet designed or built. |
+
+Documentation must never imply that an unimplemented concept already exists.
+
+---
+
+## Interpretation Caveats
+
+The phenomenon measured by the Same Genome / Different World experiment —
+**Computational Developmental Divergence** — is NOT evidence of:
+
+- consciousness,
+- biological individuality,
+- subjective experience,
+- artificial life,
+- sentience.
+
+It is an observable computational fact: identical initial conditions,
+different environmental histories, divergent developmental states. The
+scientific interest is in characterizing *how* this divergence emerges
+as a function of environmental structure, genome parameters, and runtime
+properties.
+
+---
+
+## Module Reference
+
+| Module | Responsibility |
+|--------|----------------|
+| `nuros-dev/src/hash.rs` | Canonical JSON + SHA-256 |
+| `nuros-dev/src/genome.rs` | `DevelopmentalGenome` |
+| `nuros-dev/src/state.rs` | `DevelopmentalState` + distance metric |
+| `nuros-dev/src/lifecycle.rs` | `LifecycleMachine` |
+| `nuros-dev/src/environment.rs` | `Environment` trait + `ResourceWorld` + `ChangingWorld` |
+| `nuros-dev/src/organism.rs` | `MinimumOrganism` — deterministic cognitive engine |
+| `nuros-dev/src/trajectory.rs` | `DevelopmentalTrajectory` + `DevelopmentalDivergence` |
+| `nuros-dev/src/checkpoint.rs` | `MindCheckpoint` + `replay_from_checkpoint` |
+| `nuros-dev/src/diff.rs` | `MindDiff` |
+| `nuros-dev/src/causality.rs` | `DevelopmentalCausalityGraph` |
+| `nuros-dev/src/telemetry.rs` | `DevelopmentalTelemetry` + `ReproducibilityManifest` |
+| `nuros-dev/src/lib.rs` | PyO3 bindings + flagship runner |
+| `experiments/same_genome_different_world.py` | Flagship experiment CLI |
+| `nuros/tests/test_developmental_substrate.py` | Python integration tests |

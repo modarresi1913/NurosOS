@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use NurosOS in your research, please cite it as below."
-title: "NurosOS: A Bio-Inspired Neuromorphic Operating System Based on the Drosophila Connectome"
+title: "NurosOS: The Experimental Substrate for Synthetic Development"
 type: software
 authors:
   - name: "NurosOS Contributors"
@@ -8,31 +8,41 @@ authors:
 repository-code: "https://github.com/modarresi1913/NurosOS"
 url: "https://github.com/modarresi1913/NurosOS"
 abstract: >
-  NurosOS is a next-generation operating system and runtime environment
-  architected upon the structural and functional principles derived
-  from the complete connectome of Drosophila melanogaster. By translating
-  the 125 million synaptic connections and sparse, feedback-driven neural
-  topologies into software primitives, NurosOS provides a radical new
-  paradigm for energy-efficient, highly parallel, and adaptive computing.
+  NurosOS is an open, modular, inspectable substrate for synthetic
+  development — a runtime in which artificial organisms can be
+  instantiated, developed, embodied, observed, measured, forked,
+  replayed, and experimentally compared. The fundamental object is
+  not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM. The
+  flagship Same Genome / Different World experiment demonstrates
+  Computational Developmental Divergence: identical initial
+  computational conditions producing divergent developmental states
+  under different environmental histories. This is an observable
+  computational fact, not evidence of consciousness.
 keywords:
-  - neuromorphic-computing
-  - spiking-neural-networks
-  - drosophila-connectome
-  - event-driven-operating-system
-  - bio-inspired-computing
-  - intel-loihi
+  - artificial-development
+  - synthetic-development
+  - developmental-substrate
+  - developmental-trajectory
+  - computational-developmental-divergence
+  - developmental-genome
+  - mind-checkpoint
+  - mind-diff
+  - reproducibility-manifest
+  - causality-graph
+  - artificial-ontogenesis
+  - cognitive-systems
+  - synthetic-minds
   - rust
-  - synapselang
-  - sparse-propagation-protocol
-  - associative-memory
+  - python
+  - pyo3
 license: Apache-2.0
-version: 0.1.0-alpha
-date-released: "2026-09-06"
+version: 0.3.0-alpha
+date-released: "2026-09-16"
 preferred-citation:
   type: software
-  title: "NurosOS: A Bio-Inspired Neuromorphic Operating System"
+  title: "NurosOS: The Experimental Substrate for Synthetic Development"
   authors:
     - name: "NurosOS Contributors"
   year: 2026
   url: "https://github.com/modarresi1913/NurosOS"
-  version: "0.1.0-alpha"
+  version: "0.3.0-alpha"
