@@ -86,7 +86,7 @@ The `nuros-dev` crate ([DEVELOPMENTAL_SUBSTRATE.md](DEVELOPMENTAL_SUBSTRATE.md))
 | `DevelopmentalTelemetry` | [IMPLEMENTED] | JSONL + CSV export for offline analysis |
 | `ReproducibilityManifest` | [IMPLEMENTED] | Machine-readable provenance for every experiment |
 | Same Genome / Different World | [IMPLEMENTED] | Flagship experiment runner |
-| Mind Observatory | [PROPOSED] | Visualization layer |
+| Mind Observatory | [IMPLEMENTED] | Observability layer: 9 text renderers + 13 PNG plots + CLI |
 | CounterfactualSelf | [PROPOSED] | Alternative developmental histories |
 | Cognitive Metabolism | [PROPOSED] | Resource accounting |
 | Artificial Aging | [PROPOSED] | Aging model |
@@ -350,7 +350,7 @@ These are **research questions**, not predetermined conclusions (full list in [R
 | Phase | Focus | Status |
 |-------|-------|--------|
 | **Phase 1-9** | Developmental substrate: Genome, State, Lifecycle, Environments, MinimumOrganism, Trajectory, Checkpoint+Replay, MindDiff, Telemetry, CausalityGraph, Same Genome/Different World experiment | ✅ Complete |
-| **Phase 10** | Mind Observatory: visualization, timeline replay, trajectory plots | 📋 Proposed |
+| **Phase 10** | Mind Observatory: text renderers + PNG plots + CLI | ✅ Complete |
 | **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | 📋 Proposed |
 | **Phase 12** | Cognitive/Epistemic Metabolism: resource budgets (attention, inference, memory, exploration, uncertainty, risk, energy) | 📋 Proposed |
 | **Phase 13** | Artificial Aging: memory degradation, plasticity changes, structural consolidation | 📋 Proposed |
@@ -457,7 +457,7 @@ NurosOS/
 | Mind Contracts (Python) | Python | v0.3.0-alpha [IMPLEMENTED] — 33 cognitive-layer tests |
 | Developmental Substrate Integration | Python | v0.3.0-alpha [IMPLEMENTED] — 18 integration tests |
 | Flagship Experiment | Python | v0.3.0-alpha [IMPLEMENTED] — Same Genome / Different World |
-| Mind Observatory | — | [PROPOSED] — Phase 10 |
+| Mind Observatory | Python | v0.3.0-alpha [IMPLEMENTED] — 21 tests, 9 text renderers + 13 PNG plots |
 | CounterfactualSelf | — | [PROPOSED] — Phase 11 |
 | Cognitive Metabolism | — | [PROPOSED] — Phase 12 |
 | Artificial Aging | — | [PROPOSED] — Phase 13 |

@@ -142,10 +142,34 @@ mind diff, manifests, report, and summary.
 
 ## What Is Proposed (Not Implemented)
 
-### [PROPOSED] Mind Observatory
+### [IMPLEMENTED] Mind Observatory
 
 A visualization/observability layer for inspecting the full developmental
-loop. Currently only text rendering is available.
+loop. Implemented in `nuros/observatory.py` with a CLI in
+`experiments/observatory.py`.
+
+**Text renderers** (for terminal inspection):
+- Timeline replay — step-by-step (action, reward, prediction_error, stage, energy, plasticity, memory_size, state_hash)
+- Mind diff — structured comparison of final states
+- Causal trace — trajectory backbone (observation → action → outcome)
+- Environment events — per-step (on_resource, on_hazard, distance, total_left, agent_pos)
+- Checkpoints overview — all checkpoint metadata
+- Manifests — full reproducibility manifests
+- Divergence summary — developmental divergence metrics
+
+**PNG plots** (paper-ready figures):
+- Developmental trajectory (plasticity, energy, prediction accuracy)
+- Prediction error + reward (2-panel)
+- Memory changes + cumulative reward (twin-axis)
+- State transitions (step function of developmental stages)
+- Resource consumption (energy + plasticity)
+- Mind diff (bar chart of deltas)
+- Per-step divergence (L1 state distance)
+- Divergence comparison (cumulative reward A vs B)
+
+**CLI**: `python experiments/observatory.py <experiment_dir> <command> [options]`
+
+**`render_all`**: generates all 9 text reports + 13 PNG plots into a directory.
 
 ### [PROPOSED] Counterfactual Self
 

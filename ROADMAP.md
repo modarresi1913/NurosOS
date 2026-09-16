@@ -90,12 +90,18 @@ into an experimental platform for synthetic development.
 - [x] Demonstrates Computational Developmental Divergence with non-zero metrics
 - [x] 75 tests passing (57 Rust + 18 Python)
 
-### Phase 10 — Mind Observatory 📋 (Proposed)
-- [ ] Visualization layer for the full developmental loop
-- [ ] Timeline replay, developmental trajectory plots, mind diff visualization
-- [ ] Causal trace graph rendering
-- [ ] Resource consumption plots
-- [ ] Build as an experimental instrument, not a decorative dashboard
+### Phase 10 — Mind Observatory ✅ (Complete)
+- [x] `nuros/observatory.py` — observability layer with text renderers + PNG plots
+- [x] `experiments/observatory.py` — CLI with 16 commands (summary, timeline,
+      mind-diff, causal-trace, env-events, checkpoints, manifests, divergence,
+      8 plot commands, render-all)
+- [x] Text renderers: timeline replay, mind diff, causal trace, environment
+      events, checkpoints overview, manifests, divergence summary
+- [x] PNG plots: developmental trajectory, prediction error + reward,
+      memory changes + cumulative reward, state transitions, resource
+      consumption, mind diff, per-step divergence, divergence comparison
+- [x] `nuros/tests/test_observatory.py` — 21 tests (loaders + text renderers + plots + render-all)
+- [x] Built as an experimental instrument, not a decorative dashboard
 
 ### Phase 11 — CounterfactualSelf 📋 (Proposed)
 - [ ] `CounterfactualSelf` module for evaluating alternative developmental histories
