@@ -103,11 +103,20 @@ into an experimental platform for synthetic development.
 - [x] `nuros/tests/test_observatory.py` — 21 tests (loaders + text renderers + plots + render-all)
 - [x] Built as an experimental instrument, not a decorative dashboard
 
-### Phase 11 — CounterfactualSelf 📋 (Proposed)
-- [ ] `CounterfactualSelf` module for evaluating alternative developmental histories
-- [ ] "What if environment E2 had occurred?" simulations
-- [ ] Counterfactual simulations marked SIMULATED + COUNTERFACTUAL in epistemic system
-- [ ] Never automatically execute counterfactual actions in the real environment
+### Phase 11 — CounterfactualSelf + PossibleSelfSpace ✅ (Complete)
+- [x] `nuros-dev/src/counterfactual.rs` — `CounterfactualTrajectory`, `CounterfactualSelf`, `PossibleSelfSpace`
+- [x] `MinimumOrganism::tick_with_action` — forced-action replay for counterfactuals
+- [x] `what_if_environment()` — replay from checkpoint in alternative environment
+- [x] `what_if_actions()` — replay from checkpoint with forced action sequence
+- [x] `compare_to_actual()` — divergence between counterfactual and actual trajectory
+- [x] `PossibleSelfSpace` — current self + possible futures + counterfactual past, with coverage metric
+- [x] All counterfactual trajectories marked `["SIMULATED", "COUNTERFACTUAL"]`
+- [x] `executed_in_real_environment: false` invariant enforced and auditable
+- [x] PyO3 bindings: `run_counterfactual_environment()`, `run_possible_self_space()`
+- [x] `experiments/counterfactual_demo.py` — demo with 3 alternative futures
+- [x] `nuros/tests/test_counterfactual.py` — 15 Python integration tests
+- [x] 9 Rust unit tests in counterfactual.rs
+- [x] Interpretation caveat: PossibleSelfSpace does NOT represent phenomenological identity
 
 ### Phase 12 — Cognitive/Epistemic Metabolism 📋 (Proposed)
 - [ ] Resource accounting: attention_budget, inference_budget, memory_budget,

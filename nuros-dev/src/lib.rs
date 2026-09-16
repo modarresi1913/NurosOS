@@ -34,6 +34,7 @@ pub mod checkpoint;
 pub mod diff;
 pub mod causality;
 pub mod telemetry;
+pub mod counterfactual;
 
 // Re-export the most commonly used types at the crate root for convenience.
 pub use genome::DevelopmentalGenome;
@@ -46,6 +47,7 @@ pub use checkpoint::{MindCheckpoint, ReplayFidelity, ReplayResult, replay_from_c
 pub use diff::MindDiff;
 pub use causality::{DevelopmentalCausalityGraph, EventKind, CausalEvent};
 pub use telemetry::{DevelopmentalTelemetry, TelemetryRecord, ReproducibilityManifest, trajectory_to_telemetry};
+pub use counterfactual::{CounterfactualSelf, CounterfactualTrajectory, PossibleSelfSpace, COUNTERFACTUAL_LABELS};
 
 /// The semantic version of this crate. Recorded in every manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -341,6 +343,91 @@ fn run_same_genome_different_world(
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
 }
 
+/// Run a counterfactual "What if the environment had been different?" simulation.
+///
+/// Takes a checkpoint JSON (from a previous experiment), an alternative environment seed,
+/// and the number of steps to simulate. Returns a JSON string with the counterfactual
+/// trajectory + the divergence from the actual trajectory segment.
+///
+/// The counterfactual trajectory is marked with epistemic labels SIMULATED + COUNTERFACTUAL
+/// and is NEVER executed in the real environment.
+#[pyfunction]
+#[pyo3(signature = (checkpoint_json, actual_trajectory_json, alt_env_seed, n_steps, width=6, height=6))]
+fn run_counterfactual_environment(
+    checkpoint_json: &str,
+    actual_trajectory_json: &str,
+    alt_env_seed: u64,
+    n_steps: u64,
+    width: u32,
+    height: u32,
+) -> PyResult<String> {
+    let checkpoint: MindCheckpoint = serde_json::from_str(checkpoint_json)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("checkpoint: {}", e)))?;
+    let actual: DevelopmentalTrajectory = serde_json::from_str(actual_trajectory_json)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("trajectory: {}", e)))?;
+
+    let cs = CounterfactualSelf::new(checkpoint, actual);
+    let mut alt_env = ResourceWorld::new(width, height, alt_env_seed);
+    alt_env.reset();
+    let cf = cs.what_if_environment(&mut alt_env, n_steps, alt_env_seed);
+    let divergence = cs.compare_to_actual(&cf)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+
+    let result = serde_json::json!({
+        "counterfactual": cf,
+        "divergence_from_actual": divergence,
+    });
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+}
+
+/// Build a Possible-Self Space from a checkpoint + multiple alternative environment seeds.
+///
+/// Returns a JSON string with the possible-self space (current self, possible futures,
+/// coverage, distances from current).
+#[pyfunction]
+#[pyo3(signature = (checkpoint_json, alt_env_seeds, n_steps, width=6, height=6))]
+fn run_possible_self_space(
+    checkpoint_json: &str,
+    alt_env_seeds: Vec<u64>,
+    n_steps: u64,
+    width: u32,
+    height: u32,
+) -> PyResult<String> {
+    let checkpoint: MindCheckpoint = serde_json::from_str(checkpoint_json)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("checkpoint: {}", e)))?;
+
+    // Build a placeholder actual trajectory (empty) — the space only needs the checkpoint.
+    let actual = DevelopmentalTrajectory::new(
+        "placeholder",
+        checkpoint.genome_hash.clone(),
+        checkpoint.environment_hash.clone(),
+        checkpoint.environment_seed,
+    );
+    let cs = CounterfactualSelf::new(checkpoint.clone(), actual);
+
+    let mut space = PossibleSelfSpace::new(
+        checkpoint.organism_state.developmental.clone(),
+        checkpoint.hash(),
+    );
+
+    for seed in alt_env_seeds {
+        let mut alt_env = ResourceWorld::new(width, height, seed);
+        alt_env.reset();
+        let cf = cs.what_if_environment(&mut alt_env, n_steps, seed);
+        space.add_future(cf);
+    }
+
+    let distances = space.distances_from_current();
+    let result = serde_json::json!({
+        "space": space,
+        "coverage": space.coverage(),
+        "distances_from_current": distances,
+    });
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+}
+
 /// Compute a MindDiff between two organism snapshots (JSON strings).
 #[pyfunction]
 fn mind_diff(state_a_json: &str, state_b_json: &str) -> PyResult<String> {
@@ -412,6 +499,8 @@ fn _dev(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyChangingWorld>()?;
     m.add_class::<PyOrganism>()?;
     m.add_function(wrap_pyfunction!(run_same_genome_different_world, m)?)?;
+    m.add_function(wrap_pyfunction!(run_counterfactual_environment, m)?)?;
+    m.add_function(wrap_pyfunction!(run_possible_self_space, m)?)?;
     m.add_function(wrap_pyfunction!(mind_diff, m)?)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
     Ok(())

@@ -289,6 +289,113 @@ impl MinimumOrganism {
         }
     }
 
+    /// Run one tick with a **forced action** (bypassing the organism's policy).
+    ///
+    /// This is the entry point used by the [`CounterfactualSelf`](crate::counterfactual::CounterfactualSelf)
+    /// module to replay alternative action sequences. The organism still
+    /// learns from the outcome (updates preferences, memory, developmental
+    /// state), but the action selection is overridden.
+    ///
+    /// **Safety**: this method is for **simulation only**. It must never be
+    /// called against the organism's real environment during normal
+    /// operation — only against a counterfactual environment snapshot.
+    pub fn tick_with_action(&mut self, env: &mut dyn Environment, forced: Action) -> TickRecord {
+        self.state.step += 1;
+        let step = self.state.step;
+
+        let obs = env.observe();
+        self.state.last_observation = obs.payload.clone();
+
+        let candidate = forced;
+        let predicted_reward = self
+            .state
+            .action_preferences
+            .get(&candidate.to_string())
+            .copied()
+            .unwrap_or(0.0);
+        let new_obs = env.step(candidate);
+        let actual_reward = new_obs.reward;
+
+        let prediction_error = (predicted_reward - actual_reward).abs();
+        let lr = self.genome.plasticity_rules.learning_rate
+            * self.state.developmental.plasticity;
+        let entry = self
+            .state
+            .action_preferences
+            .entry(candidate.to_string())
+            .or_insert(0.0);
+        *entry += lr * (actual_reward - predicted_reward);
+        *entry *= 1.0 - self.genome.plasticity_rules.forgetting_rate;
+
+        self.state.total_reward += actual_reward;
+        self.state.total_prediction_error += prediction_error;
+        self.state.last_action = Some(candidate);
+
+        let sig = observation_signature(&obs.payload);
+        self.state.memory.push(MemoryRecord {
+            key: sig,
+            value: serde_json::json!({
+                "action": candidate.to_string(),
+                "reward": actual_reward,
+                "prediction_error": prediction_error,
+                "forced": true,
+            }),
+            importance: (actual_reward.abs() + 0.1).min(1.0),
+            step,
+            access_count: 0,
+        });
+        if self.state.memory.len() > 200 {
+            self.state.memory.sort_by(|a, b| b.importance.partial_cmp(&a.importance).unwrap_or(std::cmp::Ordering::Equal));
+            self.state.memory.truncate(200);
+        }
+
+        let alpha = 0.1;
+        self.state.self_model.expected_reward =
+            (1.0 - alpha) * self.state.self_model.expected_reward + alpha * actual_reward;
+        self.state.self_model.expected_prediction_error =
+            (1.0 - alpha) * self.state.self_model.expected_prediction_error + alpha * prediction_error;
+        self.state.self_model.update_count += 1;
+        if candidate == Action::Consume {
+            let cap = self.state.self_model.believed_capabilities
+                .entry("consume".to_string())
+                .or_insert(0.0);
+            *cap = (1.0 - alpha) * *cap + alpha * (actual_reward > 0.0) as u64 as f64;
+        }
+
+        let dev = &mut self.state.developmental;
+        dev.age = step;
+        dev.cognitive_load = (dev.cognitive_load * 0.95 + 0.05).min(1.0);
+        dev.memory_capacity = (self.state.memory.len() as f64 / 200.0).min(1.0);
+        dev.prediction_accuracy =
+            1.0 / (1.0 + self.state.self_model.expected_prediction_error);
+        dev.self_model_stability =
+            (dev.self_model_stability * 0.99 + 0.01 * (1.0 - dev.cognitive_load)).min(1.0);
+        let cost = self.genome.energy_model.perceive_cost
+            + self.genome.energy_model.predict_cost
+            + if candidate == Action::Idle { 0.0 } else { self.genome.energy_model.act_cost };
+        let regen = if candidate == Action::Idle { self.genome.energy_model.idle_regen } else { 0.0 };
+        dev.energy_state = (dev.energy_state - cost + regen).clamp(0.0, 1.0);
+        dev.plasticity = (dev.plasticity * 0.999).max(0.05);
+        dev.stability = 0.5 * dev.stability + 0.5 * dev.prediction_accuracy;
+        dev.record_event();
+
+        self.apply_maturation();
+
+        TickRecord {
+            step,
+            action: candidate,
+            observation: new_obs.payload.clone(),
+            reward: actual_reward,
+            prediction_error,
+            predicted_reward,
+            developmental_stage: self.state.developmental.developmental_stage,
+            energy: self.state.developmental.energy_state,
+            plasticity: self.state.developmental.plasticity,
+            memory_size: self.state.memory.len() as u64,
+            state_hash: self.state.short_hash(),
+        }
+    }
+
     /// Select an action using an ε-greedy policy over action preferences.
     /// Exploration level is taken from the developmental state.
     ///

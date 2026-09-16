@@ -87,7 +87,7 @@ The `nuros-dev` crate ([DEVELOPMENTAL_SUBSTRATE.md](DEVELOPMENTAL_SUBSTRATE.md))
 | `ReproducibilityManifest` | [IMPLEMENTED] | Machine-readable provenance for every experiment |
 | Same Genome / Different World | [IMPLEMENTED] | Flagship experiment runner |
 | Mind Observatory | [IMPLEMENTED] | Observability layer: 9 text renderers + 13 PNG plots + CLI |
-| CounterfactualSelf | [PROPOSED] | Alternative developmental histories |
+| CounterfactualSelf + PossibleSelfSpace | [IMPLEMENTED] | Alternative developmental histories + reachable state space |
 | Cognitive Metabolism | [PROPOSED] | Resource accounting |
 | Artificial Aging | [PROPOSED] | Aging model |
 | Artificial Evolution | [PROPOSED] | Mutation/selection on DevelopmentalGenome |
@@ -351,7 +351,7 @@ These are **research questions**, not predetermined conclusions (full list in [R
 |-------|-------|--------|
 | **Phase 1-9** | Developmental substrate: Genome, State, Lifecycle, Environments, MinimumOrganism, Trajectory, Checkpoint+Replay, MindDiff, Telemetry, CausalityGraph, Same Genome/Different World experiment | ✅ Complete |
 | **Phase 10** | Mind Observatory: text renderers + PNG plots + CLI | ✅ Complete |
-| **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | 📋 Proposed |
+| **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | ✅ Complete |
 | **Phase 12** | Cognitive/Epistemic Metabolism: resource budgets (attention, inference, memory, exploration, uncertainty, risk, energy) | 📋 Proposed |
 | **Phase 13** | Artificial Aging: memory degradation, plasticity changes, structural consolidation | 📋 Proposed |
 | **Phase 14** | Artificial Evolution: mutation/selection/inheritance on DevelopmentalGenome | 📋 Proposed |
@@ -458,7 +458,7 @@ NurosOS/
 | Developmental Substrate Integration | Python | v0.3.0-alpha [IMPLEMENTED] — 18 integration tests |
 | Flagship Experiment | Python | v0.3.0-alpha [IMPLEMENTED] — Same Genome / Different World |
 | Mind Observatory | Python | v0.3.0-alpha [IMPLEMENTED] — 21 tests, 9 text renderers + 13 PNG plots |
-| CounterfactualSelf | — | [PROPOSED] — Phase 11 |
+| CounterfactualSelf + PossibleSelfSpace | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 9 Rust + 15 Python tests |
 | Cognitive Metabolism | — | [PROPOSED] — Phase 12 |
 | Artificial Aging | — | [PROPOSED] — Phase 13 |
 | Artificial Evolution | — | [PROPOSED] — Phase 14 |

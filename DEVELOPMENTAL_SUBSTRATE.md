@@ -171,16 +171,31 @@ loop. Implemented in `nuros/observatory.py` with a CLI in
 
 **`render_all`**: generates all 9 text reports + 13 PNG plots into a directory.
 
-### [PROPOSED] Counterfactual Self
+### [IMPLEMENTED] CounterfactualSelf + PossibleSelfSpace
 
-Allows an organism to evaluate alternative developmental histories
-("What if environment E2 had occurred?"). Architecture: CurrentSelf →
-CounterfactualGenerator → AlternativeTrajectory → Simulation → Evaluation.
+Allows an organism to evaluate alternative developmental histories: "What if
+environment E2 had occurred?", "What if action A had not been taken?".
+Implemented in `nuros-dev/src/counterfactual.rs` with PyO3 bindings.
 
-### [PROPOSED] Possible-Self Space
+**Architecture**: CurrentSelf → CounterfactualGenerator → AlternativeTrajectory → Simulation → Evaluation
 
-Represents the organism as a space of reachable developmental states
-rather than a single static state.
+**API**:
+- `CounterfactualSelf::what_if_environment(alt_env, n_steps)` — replay from checkpoint in alternative environment
+- `CounterfactualSelf::what_if_actions(env, actions, n_steps)` — replay with forced action sequence
+- `CounterfactualSelf::compare_to_actual(counterfactual)` — divergence between counterfactual and actual
+- `PossibleSelfSpace::new(current_self, checkpoint_hash)` — build the space
+- `PossibleSelfSpace::add_future(future)` — add a possible future
+- `PossibleSelfSpace::coverage()` — mean pairwise L1 distance between final states of all futures
+- `PossibleSelfSpace::distances_from_current()` — distance of each future from current self
+
+**Safety invariants**:
+1. Counterfactual simulations run against an environment *snapshot* — never the live environment.
+2. Every counterfactual trajectory is marked `["SIMULATED", "COUNTERFACTUAL"]`.
+3. `executed_in_real_environment: false` is enforced and auditable.
+
+**Interpretation caveat**: PossibleSelfSpace is an experimental abstraction. It
+does NOT represent phenomenological identity. The "possible selves" are
+reachable computational states under counterfactual perturbations — nothing more.
 
 ### [PROPOSED] Epistemic / Cognitive Metabolism
 
