@@ -118,12 +118,19 @@ into an experimental platform for synthetic development.
 - [x] 9 Rust unit tests in counterfactual.rs
 - [x] Interpretation caveat: PossibleSelfSpace does NOT represent phenomenological identity
 
-### Phase 12 — Cognitive/Epistemic Metabolism 📋 (Proposed)
-- [ ] Resource accounting: attention_budget, inference_budget, memory_budget,
-      exploration_budget, uncertainty_budget, risk_budget, energy_budget
-- [ ] `CognitiveMetabolism` module with per-operation cost model
-- [ ] Scheduler uses metabolic values
-- [ ] Experiments around "Is this information worth the cognitive cost?"
+### Phase 12 — Cognitive/Epistemic Metabolism ✅ (Complete)
+- [x] `nuros-dev/src/metabolism.rs` — `CognitiveMetabolism`, `CognitiveBudget`, `CognitiveCostModel`
+- [x] 7 budgets: attention, inference, memory, exploration, uncertainty, risk, energy
+- [x] 9 cognitive operations: Perceive, Predict, Memorize, Plan, Simulate, Act, Explore, ReduceUncertainty, TakeRisk
+- [x] Per-operation cost model + spending tracker + refusal counter
+- [x] `can_afford()` + `spend()` + `is_worth_it()` (value-of-information decision rule)
+- [x] `remaining_fractions()` for telemetry
+- [x] `reset_tick()` for per-tick budget reset + `total_spending` for cumulative tracking
+- [x] PyO3 bindings: `run_metabolism_sweep()`, `evaluate_value_of_information()`
+- [x] `experiments/metabolism_demo.py` — budget sweep + VoI table
+- [x] `nuros/tests/test_metabolism.py` — 12 Python integration tests
+- [x] 11 Rust unit tests in metabolism.rs
+- [x] Interpretation caveat: computational abstraction, NOT biological metabolism
 
 ### Phase 13 — Artificial Aging 📋 (Proposed)
 - [ ] `AgingModel` with configurable aging dimensions

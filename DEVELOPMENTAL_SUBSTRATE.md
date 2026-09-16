@@ -197,11 +197,31 @@ Implemented in `nuros-dev/src/counterfactual.rs` with PyO3 bindings.
 does NOT represent phenomenological identity. The "possible selves" are
 reachable computational states under counterfactual perturbations — nothing more.
 
-### [PROPOSED] Epistemic / Cognitive Metabolism
+### [IMPLEMENTED] Cognitive Metabolism
 
 Resource accounting for attention, inference, memory, exploration,
-uncertainty, risk, and energy. The organism should ask: "Is this
-information worth the cognitive cost?"
+uncertainty, risk, and energy. The organism can ask: "Is this information
+worth the cognitive cost?" Implemented in `nuros-dev/src/metabolism.rs`.
+
+**Budgets** (7): `attention`, `inference`, `memory`, `exploration`, `uncertainty`, `risk`, `energy`.
+
+**Operations** (9): `Perceive`, `Predict`, `Memorize`, `Plan`, `Simulate`, `Act`, `Explore`, `ReduceUncertainty`, `TakeRisk`.
+
+**API**:
+- `CognitiveMetabolism::new(budget, costs)` — construct with budgets + cost model
+- `can_afford(op)` — check whether an operation is affordable under current budgets
+- `spend(op)` — spend budget for an operation (returns false if refused)
+- `is_worth_it(expected_info_gain, op)` — value-of-information decision rule
+- `remaining_fractions()` — remaining fraction of each budget (for telemetry)
+- `reset_tick()` — reset per-tick spending (cumulative `total_spending` preserved)
+- `refusals` — count of operations refused due to insufficient budget
+
+**PyO3 bindings**:
+- `run_metabolism_sweep(budget_values, n_steps)` — sweep energy budget across multiple values
+- `evaluate_value_of_information(operation, expected_info_gain)` — evaluate VoI rule for one operation
+
+**Interpretation caveat**: This is a computational abstraction inspired by
+resource-constrained organisms. It does NOT reproduce biological metabolism.
 
 ### [PROPOSED] Artificial Aging
 

@@ -35,6 +35,7 @@ pub mod diff;
 pub mod causality;
 pub mod telemetry;
 pub mod counterfactual;
+pub mod metabolism;
 
 // Re-export the most commonly used types at the crate root for convenience.
 pub use genome::DevelopmentalGenome;
@@ -48,6 +49,7 @@ pub use diff::MindDiff;
 pub use causality::{DevelopmentalCausalityGraph, EventKind, CausalEvent};
 pub use telemetry::{DevelopmentalTelemetry, TelemetryRecord, ReproducibilityManifest, trajectory_to_telemetry};
 pub use counterfactual::{CounterfactualSelf, CounterfactualTrajectory, PossibleSelfSpace, COUNTERFACTUAL_LABELS};
+pub use metabolism::{CognitiveMetabolism, CognitiveBudget, CognitiveCostModel, CognitiveOperation, BudgetSpending};
 
 /// The semantic version of this crate. Recorded in every manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -440,6 +442,111 @@ fn mind_diff(state_a_json: &str, state_b_json: &str) -> PyResult<String> {
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
 }
 
+/// Run a metabolism budget sweep experiment.
+///
+/// For each budget value in `budget_values`, instantiate an organism with
+/// a metabolism whose energy budget is set to that value, develop it for
+/// `n_steps` in a ResourceWorld, and record the total reward + refusal count.
+/// Returns a JSON string with the sweep results.
+///
+/// This demonstrates how resource constraints shape developmental trajectories.
+#[pyfunction]
+#[pyo3(signature = (budget_values, n_steps=60, env_seed=1, width=6, height=6, genome_name="metabolism_sweep".to_string()))]
+fn run_metabolism_sweep(
+    budget_values: Vec<f64>,
+    n_steps: u64,
+    env_seed: u64,
+    width: u32,
+    height: u32,
+    genome_name: String,
+) -> PyResult<String> {
+    let genome = DevelopmentalGenome::named(genome_name);
+    let mut results: Vec<serde_json::Value> = Vec::new();
+
+    for &budget_val in &budget_values {
+        let mut org = MinimumOrganism::instantiate(genome.clone());
+        org.initialize().unwrap();
+        org.begin_development().unwrap();
+        let mut env = ResourceWorld::new(width, height, env_seed);
+        env.reset();
+
+        // Attach a metabolism with the given energy budget.
+        let mut metabolism = CognitiveMetabolism::default();
+        metabolism.budget.energy = budget_val;
+
+        let mut total_reward = 0.0_f64;
+        let mut refusals = 0_u64;
+
+        for _ in 0..n_steps {
+            metabolism.reset_tick();
+            // Spend for perceive + predict.
+            if metabolism.spend(CognitiveOperation::Perceive) {
+                // ok
+            }
+            if metabolism.spend(CognitiveOperation::Predict) {
+                // ok
+            }
+            let tick = org.tick(&mut env);
+            total_reward += tick.reward;
+            // Spend for the action.
+            let _ = metabolism.spend(CognitiveOperation::Act);
+            refusals = metabolism.refusals;
+        }
+
+        results.push(serde_json::json!({
+            "energy_budget": budget_val,
+            "total_reward": total_reward,
+            "mean_reward": total_reward / n_steps as f64,
+            "refusals": refusals,
+            "final_state_hash": org.state.short_hash(),
+        }));
+    }
+
+    let result = serde_json::json!({
+        "experiment": "metabolism_sweep",
+        "genome_hash": genome.hash(),
+        "n_steps": n_steps,
+        "env_seed": env_seed,
+        "results": results,
+    });
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+}
+
+/// Evaluate the value-of-information decision rule for a single operation.
+///
+/// Returns a JSON string with: { operation, cost, expected_info_gain, worth_it }.
+#[pyfunction]
+#[pyo3(signature = (operation, expected_info_gain))]
+fn evaluate_value_of_information(
+    operation: &str,
+    expected_info_gain: f64,
+) -> PyResult<String> {
+    let op = match operation.to_lowercase().as_str() {
+        "perceive" => CognitiveOperation::Perceive,
+        "predict" => CognitiveOperation::Predict,
+        "memorize" => CognitiveOperation::Memorize,
+        "plan" => CognitiveOperation::Plan,
+        "simulate" => CognitiveOperation::Simulate,
+        "act" => CognitiveOperation::Act,
+        "explore" => CognitiveOperation::Explore,
+        "reduce_uncertainty" => CognitiveOperation::ReduceUncertainty,
+        "take_risk" => CognitiveOperation::TakeRisk,
+        _ => return Err(pyo3::exceptions::PyValueError::new_err(format!("unknown operation: {}", operation))),
+    };
+    let m = CognitiveMetabolism::default();
+    let cost = m.cost_of(op);
+    let worth_it = m.is_worth_it(expected_info_gain, op);
+    let result = serde_json::json!({
+        "operation": operation,
+        "cost": cost,
+        "expected_info_gain": expected_info_gain,
+        "worth_it": worth_it,
+    });
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+}
+
 /// Get the crate version.
 #[pyfunction]
 fn version() -> &'static str {
@@ -502,6 +609,8 @@ fn _dev(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_counterfactual_environment, m)?)?;
     m.add_function(wrap_pyfunction!(run_possible_self_space, m)?)?;
     m.add_function(wrap_pyfunction!(mind_diff, m)?)?;
+    m.add_function(wrap_pyfunction!(run_metabolism_sweep, m)?)?;
+    m.add_function(wrap_pyfunction!(evaluate_value_of_information, m)?)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
     Ok(())
 }
