@@ -1,5 +1,11 @@
 # Values/Drives Contract Specification
 
+> **Note (v0.3.0-alpha):** This contract is implemented in the `nuros/`
+> Python package (v0.2.0 cognitive layer). The v0.3.0 developmental
+> substrate (`nuros-dev` Rust crate) builds on top of these contracts.
+> See [`DEVELOPMENTAL_SUBSTRATE.md`](../../DEVELOPMENTAL_SUBSTRATE.md).
+
+
 ## Three-Tier Hierarchy
 
 1. **Immutable Constraints** — Cannot be revoked

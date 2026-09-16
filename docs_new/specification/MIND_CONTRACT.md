@@ -1,5 +1,17 @@
 # Mind Contract Specification
 
+> **Note (v0.3.0-alpha):** This document describes the v0.2.0 cognitive
+> architecture. NurosOS has since evolved into "The Experimental Substrate
+> for Synthetic Development". For the current v0.3.0+ architecture (with
+> the new Developmental Substrate layer), see
+> [`ARCHITECTURE.md`](../ARCHITECTURE.md) and
+> [`DEVELOPMENTAL_SUBSTRATE.md`](../DEVELOPMENTAL_SUBSTRATE.md).
+>
+> The v0.2.0 cognitive layer described here is still implemented in the
+> `nuros/` Python package and is the foundation on which the v0.3.0
+> developmental substrate builds.
+
+
 ## Overview
 
 The Mind Contract Layer (MCL) defines six contracts that every NurosOS organism must implement. These are not optional features — they are the structural invariants of a synthetic mind.

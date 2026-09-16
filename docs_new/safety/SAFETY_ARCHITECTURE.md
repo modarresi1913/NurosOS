@@ -1,5 +1,17 @@
 # Safety Architecture
 
+> **Note (v0.3.0-alpha):** This document describes the v0.2.0 cognitive
+> architecture. NurosOS has since evolved into "The Experimental Substrate
+> for Synthetic Development". For the current v0.3.0+ architecture (with
+> the new Developmental Substrate layer), see
+> [`ARCHITECTURE.md`](../ARCHITECTURE.md) and
+> [`DEVELOPMENTAL_SUBSTRATE.md`](../DEVELOPMENTAL_SUBSTRATE.md).
+>
+> The v0.2.0 cognitive layer described here is still implemented in the
+> `nuros/` Python package and is the foundation on which the v0.3.0
+> developmental substrate builds.
+
+
 ## Core Principle: Architectural Independence
 
 The Safety Kernel is **architecturally independent** from the cognitive subsystem. This means:

@@ -1,6 +1,13 @@
 # NurosOS Architecture Overview
 
-## The Central Thesis
+> **Note (v0.3.0-alpha):** This document describes the v0.2.0 cognitive
+> architecture. NurosOS has since evolved into "The Experimental Substrate
+> for Synthetic Development". For the current v0.3.0+ architecture (with
+> the new Developmental Substrate layer), see
+> [../../ARCHITECTURE.md](../../ARCHITECTURE.md) and
+> [../../DEVELOPMENTAL_SUBSTRATE.md](../../DEVELOPMENTAL_SUBSTRATE.md).
+
+## The Central Thesis (v0.2.0 — preserved)
 
 We don't want to merely build larger models. We want to explore the **computational conditions** under which artificial systems can develop memory, agency, prediction, adaptation, self-modeling, and embodied behavior.
 
