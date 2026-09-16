@@ -264,39 +264,44 @@ python experiments/same_genome_different_world.py --steps 200
 
 ## Organisms
 
-NurosOS includes progressively complex experimental organisms:
+NurosOS includes two organism implementations:
 
 | Organism | Architecture | Key Feature | Status |
 |----------|-------------|-------------|--------|
-| **Organism-0** | Reactive | sensory → response | ✅ Implemented |
-| **Organism-1** | Reactive + Memory | sensory → memory → response | ✅ Implemented |
-| **Organism-2** | Predictive | memory → prediction → action | ✅ Implemented |
-| **Organism-3** | Imaginative | prediction → imagination → action | ✅ Implemented |
-| **Organism-4** | Homeostatic | homeostasis → development → adaptation | ✅ Implemented |
-| **Organism-5** | Self-modeling | memory → self-model → imagination → development | ✅ Implemented |
+| **MinimumOrganism** | Deterministic ε-greedy + heuristic biases | Full developmental loop: sensation → prediction → memory → self-model → values → decision → action → learning → development | ✅ Implemented (in `nuros-dev` Rust crate) |
+| **Organism-0..5** (Python) | Reactive → Self-modeling ladder | Mind Contract integration (memory, self-model, imagination, values, body, responsibility) | ✅ Implemented (in `nuros/` Python package) |
+
+The `MinimumOrganism` is intentionally NOT an LLM, NOT a neural network, and NOT stochastic. It is a small deterministic policy over a finite action space, parameterized by a plasticity rule. This makes trajectories fully reproducible and lets us isolate the effect of environment from the effect of engine.
 
 ---
 
-## Development Engine
+## Developmental Loop
 
-**Core principle: Program the conditions under which a mind can develop, not every behavior the mind must contain.**
+The central computational loop implemented in `MinimumOrganism::tick`:
 
-Developmental trajectory:
+```
+GENOME → INITIAL STATE → SENSATION → PREDICTION → PREDICTION ERROR
+       → MEMORY UPDATE → SELF-MODEL UPDATE → VALUE EVALUATION
+       → DECISION → ACTION → ENVIRONMENTAL CONSEQUENCE
+       → LEARNING → DEVELOPMENTAL UPDATE → NEW STATE → REPEAT
+```
+
+Developmental stages (driven by the genome's maturation schedule):
 ```
 EMBRYONIC → NASCENT → DEVELOPING → MATURING → MATURE → SPECIALIZED
 ```
 
-Instead of specifying every behavior, the programmer specifies:
-- Rules and constraints
-- Environment and resources
-- Plasticity mechanisms
-- Developmental objectives
+Lifecycle states (auditable state machine):
+```
+CREATED → INITIALIZED → DEVELOPING → ACTIVE → ADAPTING → RECOVERING
+       → CHECKPOINTED → FORKED → SUSPENDED → TERMINATED
+```
 
 ---
 
-## Homeostasis Kernel
+## Homeostasis Kernel (Python cognitive layer)
 
-The organism maintains internal operational state through computational regulation:
+The Python organism maintains internal operational state through computational regulation:
 
 | Variable | Optimal | Regulation |
 |----------|---------|------------|
@@ -309,29 +314,34 @@ The organism maintains internal operational state through computational regulati
 
 **This is NOT biological homeostasis. It is a computational mechanism for maintaining viable internal operation.**
 
+The Rust `MinimumOrganism` exposes the same variables via `DevelopmentalState` (energy_state, cognitive_load, prediction_accuracy, self_model_stability, exploration_level, risk_sensitivity, etc.).
+
 ---
 
 ## Philosophy
 
-> **Don't program the mind. Program the conditions under which it can develop.**
+> **Don't train a mind. Instantiate its developmental conditions.**
 
-> **Memory is not storage. Development is not deployment. Simulation is not observation. Intelligence is not consciousness.**
+> **Memory is not storage. Development is not deployment. Simulation is not observation. Intelligence is not consciousness. Divergence is not individuality.**
+
+> **The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM.**
 
 ---
 
 ## Research Questions
 
-These are **hypotheses**, not established facts:
+These are **research questions**, not predetermined conclusions (full list in [RESEARCH_AGENDA.md](RESEARCH_AGENDA.md)):
 
-- **Development**: Can complex adaptive behavior emerge from simple developmental rules?
-- **Memory**: How does persistent associative memory alter long-horizon behavior?
-- **Plasticity**: Can structural adaptation outperform static architectures?
-- **Homeostasis**: Can internal stability variables produce more robust adaptive behavior?
-- **Embodiment**: How does coupling cognition to environmental constraints change behavior?
-- **Self-model**: Does an explicit self-model improve planning or recovery?
-- **Imagination**: Does counterfactual simulation improve decision quality?
-- **Sleep**: Can offline replay and consolidation improve long-term performance?
-- **Evolution**: Can populations of artificial organisms develop useful behavioral diversity?
+1. Can developmental trajectories produce stable computational individuality?
+2. How does environmental history alter identical initial architectures?
+3. What measurable trade-offs exist between plasticity and stability?
+4. Can artificial cognitive capabilities emerge through development rather than explicit programming?
+5. How does accumulated experience alter future behavior?
+6. Can cognitive trajectories be reproduced experimentally? **[IMPLEMENTED — yes, via ReproducibilityManifest]**
+7. Can counterfactual developmental histories improve planning? **[PROPOSED]**
+8. What computational constraints govern artificial cognitive development? **[PROPOSED — Cognitive Metabolism]**
+9. Can artificial organisms specialize without explicit specialization programming?
+10. Which properties of cognition are architecture-dependent versus development-dependent?
 
 ---
 
@@ -339,14 +349,14 @@ These are **hypotheses**, not established facts:
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| **Phase 0** | Scientific cleanup, claim audit, reproducibility standards | ✅ Complete |
-| **Phase 1** | Cognitive substrate: memory API, epistemic labels, observability | ✅ Complete |
-| **Phase 2** | Organismic runtime: homeostasis, scheduler, lifecycle | ✅ Complete |
-| **Phase 3** | Development engine: rules, plasticity, checkpoints | ✅ Complete |
-| **Phase 4** | Mind contracts: self-model, imagination, values, body, responsibility | ✅ Complete |
-| **Phase 5** | Artificial organisms: manifests, environments, benchmarks | 🚧 In progress |
-| **Phase 6** | Mind version control: snapshots, fork, diff, replay, restore | 🚧 Experimental |
-| **Phase 7** | Artificial evolution: population runtime, mutation, selection | 📋 Proposed |
+| **Phase 1-9** | Developmental substrate: Genome, State, Lifecycle, Environments, MinimumOrganism, Trajectory, Checkpoint+Replay, MindDiff, Telemetry, CausalityGraph, Same Genome/Different World experiment | ✅ Complete |
+| **Phase 10** | Mind Observatory: visualization, timeline replay, trajectory plots | 📋 Proposed |
+| **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | 📋 Proposed |
+| **Phase 12** | Cognitive/Epistemic Metabolism: resource budgets (attention, inference, memory, exploration, uncertainty, risk, energy) | 📋 Proposed |
+| **Phase 13** | Artificial Aging: memory degradation, plasticity changes, structural consolidation | 📋 Proposed |
+| **Phase 14** | Artificial Evolution: mutation/selection/inheritance on DevelopmentalGenome | 📋 Proposed |
+
+See [ROADMAP.md](ROADMAP.md) for the full version-by-version roadmap.
 
 ---
 
@@ -375,33 +385,64 @@ All 108 tests passing ✅ (57 Rust + 18 developmental-substrate Python + 33 cogn
 
 ```
 NurosOS/
-├── nuros/                    # Core Python package (NEW)
-│   ├── __init__.py          # Package identity
-│   ├── epistemic.py         # Epistemic Kernel — 7 labels, invariant enforcement
-│   ├── memory.py            # Memory Contract — 5 types, 8 operations, auditable
-│   ├── self_model.py        # Self Model Contract — queries, beliefs, goals
-│   ├── imagination.py       # Imagination Engine — counterfactuals, safety gates
-│   ├── values.py            # Values Contract — immutable constraints, goals, prefs
-│   ├── body.py              # Body Contract — embodiment abstraction
-│   ├── responsibility.py    # Responsibility Contract — auditable causal history
-│   ├── homeostasis.py       # Homeostasis Kernel — 10 variables, regulation rules
-│   ├── safety.py            # Safety Kernel — permissions, audit, override
-│   ├── development.py       # Development Engine — synthetic development runtime
-│   ├── organism.py          # Organism — integrated artificial cognitive organism
-│   ├── environment.py       # Environment API — observe/act/step/reset
-│   ├── genome.py            # Mind Genome — blueprint specification
-│   ├── version_control.py   # Mind Version Control — snapshot/fork/diff
-│   ├── scheduler.py         # Metabolic Cognitive Scheduler
-│   └── tests/               # 33 comprehensive tests
-├── kernel/                   # Rust microkernel (existing)
-├── compiler/                 # SynapseLang compiler (existing)
-├── core/                     # Core neural algorithms (existing)
-├── hal/                      # Hardware Abstraction Layer (existing)
-├── organisms/                # Experimental organism manifests
-├── environments/             # Environment implementations
-├── experiments/              # Scientific experiments
+├── nuros-dev/                # Rust developmental substrate (NEW in v0.3.0)
+│   ├── src/
+│   │   ├── lib.rs            # PyO3 bindings + flagship experiment runner
+│   │   ├── hash.rs           # Canonical JSON + SHA-256
+│   │   ├── genome.rs         # DevelopmentalGenome
+│   │   ├── state.rs          # DevelopmentalState + L1 distance
+│   │   ├── lifecycle.rs      # LifecycleMachine
+│   │   ├── environment.rs    # ResourceWorld + ChangingWorld
+│   │   ├── organism.rs       # MinimumOrganism (deterministic cognitive engine)
+│   │   ├── trajectory.rs     # DevelopmentalTrajectory + DevelopmentalDivergence
+│   │   ├── checkpoint.rs     # MindCheckpoint + ReplayFidelity
+│   │   ├── diff.rs           # MindDiff
+│   │   ├── causality.rs      # DevelopmentalCausalityGraph
+│   │   └── telemetry.rs      # DevelopmentalTelemetry + ReproducibilityManifest
+│   ├── tests/                # 57 Rust unit tests
+│   ├── Cargo.toml
+│   └── pyproject.toml        # maturin build config
+├── nuros/                    # Python cognitive layer (v0.2.0)
+│   ├── __init__.py           # v0.3.0-alpha identity + optional _dev import
+│   ├── epistemic.py          # Epistemic Kernel — 7 labels, forbidden transitions
+│   ├── memory.py             # Memory Contract — 5 types, 8 operations, auditable
+│   ├── self_model.py         # Self Model Contract — queries, beliefs, goals
+│   ├── imagination.py        # Imagination Engine — counterfactuals, safety gates
+│   ├── values.py             # Values Contract — immutable constraints, goals, prefs
+│   ├── body.py               # Body Contract — embodiment abstraction
+│   ├── responsibility.py     # Responsibility Contract — auditable causal history
+│   ├── homeostasis.py        # Homeostasis Kernel — 10 variables, regulation rules
+│   ├── safety.py             # Safety Kernel — permissions, audit, override
+│   ├── development.py        # Development Engine — synthetic development runtime
+│   ├── organism.py           # Organism Runtime — integrated cognitive organism
+│   ├── environment.py        # Environment API — observe/act/step/reset
+│   ├── genome.py             # Mind Genome (Python-side, superseded by nuros-dev)
+│   ├── version_control.py    # Mind Version Control (Python-side, superseded)
+│   ├── scheduler.py          # Metabolic Cognitive Scheduler
+│   └── tests/
+│       ├── test_core.py              # 33 cognitive-layer tests
+│       └── test_developmental_substrate.py  # 18 integration tests (NEW)
+├── experiments/
+│   └── same_genome_different_world.py  # Flagship experiment (NEW)
+├── kernel/                   # Rust neuromorphic microkernel (v0.1.0, future backend)
+├── core/                     # Rust neural algorithms (v0.1.0, future backend)
+├── hal/                      # Hardware Abstraction Layer (v0.1.0)
+├── compiler/                 # SynapseLang compiler (v0.1.0)
+├── organisms/                # Python organism manifests (0-5)
+├── environments/             # Python environment implementations
 ├── benchmarks/               # Benchmark suite
-└── docs/                     # Documentation
+├── docs/
+│   └── structured-data.json  # Schema.org for SEO/AEO/GEO (updated v0.3.0)
+├── DEVELOPMENTAL_SUBSTRATE.md  # Comprehensive spec (NEW)
+├── WHITEPAPER.md             # v2.0 draft (v1.0 preserved as historical context)
+├── ARCHITECTURE.md           # v0.3.0+ layer architecture
+├── SUMMARY.md                # 60-second overview for answer engines
+├── ROADMAP.md                # Phase 1-9 complete, 10-14 proposed
+├── RESEARCH_AGENDA.md        # 12 research items + 10 open questions
+├── CONTRIBUTING.md           # Two-track contribution model
+├── KEYWORDS.md               # SEO/AEO/GEO keyword clusters (EN + FA)
+├── llms.txt                  # AEO/GEO summary for LLMs
+└── CITATION.cff              # v0.3.0-alpha citation
 ```
 
 ---
@@ -412,16 +453,17 @@ NurosOS/
 
 | Component | Language | Stage |
 |-----------|----------|-------|
-| Mind Contracts (Python) | Python | v0.3.0-alpha (33 cognitive-layer tests passing) |
-| Epistemic Kernel | Python | IMPLEMENTED |
-| Homeostasis Kernel | Python | IMPLEMENTED |
-| Safety Kernel | Python | IMPLEMENTED |
-| Development Engine | Python | IMPLEMENTED |
-| Organism Runtime | Python | IMPLEMENTED |
-| Mind Genome | Python | EXPERIMENTAL |
-| Mind Version Control | Python | EXPERIMENTAL |
-| Kernel (Rust) | Rust | v0.1.0-alpha (existing) |
-| SynapseLang | Python | v0.1.0-alpha (existing) |
+| Developmental Substrate (nuros-dev) | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 57 tests passing |
+| Mind Contracts (Python) | Python | v0.3.0-alpha [IMPLEMENTED] — 33 cognitive-layer tests |
+| Developmental Substrate Integration | Python | v0.3.0-alpha [IMPLEMENTED] — 18 integration tests |
+| Flagship Experiment | Python | v0.3.0-alpha [IMPLEMENTED] — Same Genome / Different World |
+| Mind Observatory | — | [PROPOSED] — Phase 10 |
+| CounterfactualSelf | — | [PROPOSED] — Phase 11 |
+| Cognitive Metabolism | — | [PROPOSED] — Phase 12 |
+| Artificial Aging | — | [PROPOSED] — Phase 13 |
+| Artificial Evolution | — | [PROPOSED] — Phase 14 |
+| Neuromorphic Kernel (v0.1.0) | Rust | Preserved as future execution backend |
+| SynapseLang (v0.1.0) | Python | Preserved as v0.1.0 |
 
 ---
 
