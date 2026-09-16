@@ -408,11 +408,11 @@ NurosOS/
 
 ## Status
 
-> ⚠️ **Experimental research software.** NurosOS is at v0.2.0-alpha. It is not production-ready.
+> ⚠️ **Experimental research software.** NurosOS is at v0.3.0-alpha. It is not production-ready.
 
 | Component | Language | Stage |
 |-----------|----------|-------|
-| Mind Contracts (Python) | Python | v0.2.0-alpha (33 tests passing) |
+| Mind Contracts (Python) | Python | v0.3.0-alpha (33 cognitive-layer tests passing) |
 | Epistemic Kernel | Python | IMPLEMENTED |
 | Homeostasis Kernel | Python | IMPLEMENTED |
 | Safety Kernel | Python | IMPLEMENTED |
@@ -435,16 +435,16 @@ Released under the **Apache License 2.0**. See [`LICENSE`](LICENSE).
 
 ```bibtex
 @software{nurosos2026,
-  title  = {NurosOS: A Runtime for Synthetic Minds and Artificial Organisms},
+  title  = {NurosOS: The Experimental Substrate for Synthetic Development},
   author = {NurosOS Contributors},
   year   = {2026},
   url    = {https://github.com/modarresi1913/NurosOS},
-  version = {0.2.0-alpha}
+  version = {0.3.0-alpha}
 }
 ```
 
 ---
 
-> **NurosOS — The Runtime for Synthetic Minds.**
+> **NurosOS — The Experimental Substrate for Synthetic Development.**
 >
-> *We don't build minds. We build the worlds in which minds can emerge.*
+> *We don't train a mind. We instantiate its developmental conditions.*

@@ -1,6 +1,6 @@
 ---
 Task ID: 1
-Agent: main (Super Z)
+Agent: NurosOS coding agent
 Task: Audit NurosOS repository and evolve it toward an Experimental Substrate for Artificial Development (Phases 1-9, ending with the Same Genome / Different World flagship experiment).
 
 Work Log:
@@ -31,7 +31,7 @@ Stage Summary:
 
 ---
 Task ID: 2-9
-Agent: main (Super Z)
+Agent: NurosOS coding agent
 Task: Implement Phases 2-9 of the developmental substrate — DevelopmentalState, DevelopmentalGenome, ArtificialOntogenesis, Checkpoint+Replay, MindDiff, DevelopmentalTelemetry, DevelopmentalCausalityGraph, and the Same Genome / Different World flagship experiment.
 
 Work Log:
@@ -72,7 +72,7 @@ Stage Summary:
 
 ---
 Task ID: 10
-Agent: main (Super Z)
+Agent: NurosOS coding agent
 Task: Documentation cleanup pass — update WHITEPAPER, SUMMARY, ARCHITECTURE, CONTRIBUTING, CITATION to reflect v0.3.0-alpha developmental-substrate identity. Prepare clean commit-ready state for user to push.
 
 Work Log:

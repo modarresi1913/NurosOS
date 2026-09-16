@@ -12,26 +12,35 @@
     {
       "@type": "SoftwareApplication",
       "name": "NurosOS",
-      "description": "An open-source, bio-inspired neuromorphic operating system that runs the complete Drosophila melanogaster connectome (125 million synapses) as an event-driven spiking neural network. Designed for picojoule-class cognitive computing on neuromorphic silicon such as Intel Loihi 2.",
+      "description": "An open-source experimental substrate for synthetic development, written in Rust and Python. Provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems. The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM.",
       "url": "https://github.com/modarresi1913/NurosOS",
       "applicationCategory": "ScienceApplication",
-      "applicationSubCategory": "Neuromorphic Computing",
-      "operatingSystem": "Cross-platform (x86_64, ARM, Intel Loihi 2, FPGA)",
+      "applicationSubCategory": "Artificial Development",
+      "operatingSystem": "Cross-platform (Linux, macOS, Windows)",
       "programmingLanguage": ["Rust", "Python"],
-      "softwareVersion": "0.1.0-alpha",
+      "softwareVersion": "0.3.0-alpha",
       "license": "https://www.apache.org/licenses/LICENSE-2.0",
       "isAccessibleForFree": true,
       "keywords": [
-        "neuromorphic computing",
-        "spiking neural networks",
-        "Drosophila connectome",
-        "event-driven operating system",
-        "bio-inspired computing",
-        "Intel Loihi",
-        "Sparse Propagation Protocol",
-        "SynapseLang",
-        "associative memory store",
-        "Von Neumann bottleneck"
+        "artificial development",
+        "synthetic development",
+        "developmental substrate",
+        "developmental trajectory",
+        "computational developmental divergence",
+        "developmental genome",
+        "mind checkpoint",
+        "mind diff",
+        "reproducibility manifest",
+        "causality graph",
+        "artificial ontogenesis",
+        "cognitive systems",
+        "synthetic minds",
+        "deterministic cognitive engine",
+        "Same Genome Different World",
+        "PyO3 bindings",
+        "epistemic kernel",
+        "mind contracts",
+        "safety kernel"
       ],
       "author": {
         "@type": "Organization",
@@ -52,39 +61,23 @@
           "name": "What is NurosOS?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "NurosOS is an open-source, bio-inspired neuromorphic operating system written in Rust and Python. It runs the complete connectome of Drosophila melanogaster (125 million synapses) as an event-driven spiking neural network, providing a software substrate for energy-efficient cognitive computing on neuromorphic hardware such as Intel Loihi 2."
+            "text": "NurosOS is an open-source experimental substrate for synthetic development, written in Rust and Python. It provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems. The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM."
           }
         },
         {
           "@type": "Question",
-          "name": "How does NurosOS differ from a traditional operating system like Linux?",
+          "name": "How does NurosOS differ from an AI agent framework?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "NurosOS has no filesystem, no POSIX API, and no process tree. It exposes three primitives — Neuron, Synapse, and Region — and builds all OS concepts on top of them. The scheduler is event-driven (not time-sliced), memory is content-addressed (not path-addressed), and fault tolerance is structural."
+            "text": "Traditional AI follows the inversion Model -> Training -> Agent. NurosOS inverts this again: Developmental Genome -> Environment -> Experience -> Development -> Individual Cognitive Trajectory -> Artificial Organism. The agent is not the primitive; the developing organism is the primitive. NurosOS provides developmental state, artificial ontogenesis, environmental interaction, mind provenance, mind diff, reproducibility, and developmental experiments — none of which are primitives of an agent framework."
           }
         },
         {
           "@type": "Question",
-          "name": "How does NurosOS achieve 1000x energy efficiency compared to GPUs?",
+          "name": "What is the Same Genome / Different World experiment?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Two mechanisms: (1) The Sparse Propagation Protocol keeps only 3-5% of neurons active per cycle, matching Drosophila central-brain observations. A neuron that doesn't fire consumes ~1000x less energy than one that does. (2) Memory and compute are collocated at the synapse — there is no separate DRAM fetch step, eliminating the Von Neumann bottleneck on neuromorphic silicon like Intel Loihi 2."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is NurosOS production-ready?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "No. NurosOS is research software at v0.1.0-alpha. It runs only in software emulation on x86_64 hardware, approximately 10,000x slower than real-time. The v1.0.0 stable release with production SDK is targeted for late 2026."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What is the Drosophila connectome and why use it?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The 2026 release of the complete adult male Drosophila melanogaster connectome — ~140,000 neurons, ~125 million synapses — is the first whole-animal connectome at synapse resolution. Drosophila is the right starting point: complex enough to be interesting (rich behavioral repertoire), simple enough to be tractable (2 GB compressed storage vs. ~1 PB projected for a human connectome)."
+            "text": "The flagship NurosOS experiment instantiates two organisms from the same developmental genome, places them in differently-seeded environments, develops both for the same number of steps, and measures the developmental divergence between them. The experiment demonstrates Computational Developmental Divergence: identical initial computational conditions producing divergent developmental states under different environmental histories. This is an observable computational fact, NOT evidence of consciousness or biological individuality."
           }
         },
         {
@@ -92,7 +85,15 @@
           "name": "Does NurosOS implement consciousness?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. NurosOS implements behavioral competence — the ability to reproduce observable Drosophila behaviors (obstacle avoidance, phototaxis, courtship song, olfactory learning). The gap between behavioral competence and consciousness is unknown and is not a target of this project."
+            "text": "No. NurosOS does not implement consciousness, does not create biological life, and does not solve artificial consciousness. The divergence measured by the flagship experiment is an observable computational fact, not evidence of subjective experience. NurosOS treats consciousness, sentience, subjective experience, and artificial life as open research questions, not as solved problems."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is NurosOS production-ready?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. NurosOS is research software at v0.3.0-alpha. It is not production-ready. The MinimumOrganism cognitive engine is intentionally a deterministic epsilon-greedy policy with hand-coded heuristic biases — not an LLM, not a neural network. This is by design for reproducibility and for isolating the effect of environment from the effect of engine."
           }
         },
         {
@@ -100,22 +101,46 @@
           "name": "What programming languages does NurosOS use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Rust (>=1.75) for the kernel, HAL, and core neural algorithms; Python (>=3.10) for the SynapseLang compiler, tooling, and behavioral benchmarks; SynapseLang (custom DSL) for declaring neural circuits in human-readable .syn source files."
+            "text": "Rust (>=1.75) for the developmental substrate (nuros-dev crate, exposed via PyO3) and the neuromorphic kernel (preserved from v0.1.0 as a future execution backend). Python (>=3.10) for the cognitive layer, experiments, and integration tests. The flagship experiment runner (experiments/same_genome_different_world.py) is Python; the developmental primitives it invokes are Rust."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a Developmental Genome?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A DevelopmentalGenome is a serializable, hashable specification of an organism's initial developmental conditions. It includes architecture, initial memory, initial capabilities, plasticity rules, biases, maturation schedule, homeostasis setpoints, energy model, and mutation parameters. Two organisms instantiated from the same genome, placed in different environments, should produce divergent developmental trajectories. The genome has a canonical SHA-256 hash that becomes part of every checkpoint, trajectory, and manifest."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Mind Diff?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "MindDiff is a structured comparison of two organism states across memory, self-model, values (action preferences), capabilities, prediction, behavior, and developmental state. Inspired conceptually by version-control diffs, but designed for cognitive state. The output is machine-readable JSON with a human-readable rendering. It supports diff(mind_A, mind_B) and diff(mind_t1, mind_t2)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is reproducibility guaranteed?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Every experiment produces a ReproducibilityManifest recording: mind_id, genome_hash, runtime_hash, environment_hash, experiment_hash, random_seed, environment_seed, checkpoint_hash, configuration_hash, dependency_versions, timestamp, n_steps, and limitations. Two runs with the same manifest values produce identical trajectories (verified by 57 Rust unit tests + 18 Python integration tests). Replay fidelity is classified as EXACT, APPROXIMATE, or NON_REPRODUCIBLE."
           }
         }
       ]
     },
     {
       "@type": "Dataset",
-      "name": "Drosophila melanogaster connectome (mini release, 125M synapses)",
-      "description": "The complete adult male Drosophila melanogaster connectome — 140,000 neurons and 125 million synaptic connections, compressed to ~2 GB. Used as the structural template for NurosOS.",
+      "name": "NurosOS Flagship Experiment Outputs — Same Genome / Different World",
+      "description": "Example outputs from the NurosOS flagship experiment. Two organisms instantiated from the same developmental genome, placed in differently-seeded ResourceWorld environments, developed for 300 steps each. Includes trajectories (JSONL), telemetry (CSV), checkpoints, developmental divergence, mind diff, and reproducibility manifests.",
       "creator": {
         "@type": "Organization",
-        "name": "FlyWire Consortium"
+        "name": "NurosOS Contributors"
       },
-      "license": "CC-BY-4.0",
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
       "isAccessibleForFree": true,
-      "keywords": ["connectome", "Drosophila", "synapse-level", "neuroscience", "FlyWire"]
+      "keywords": ["artificial development", "developmental trajectory", "computational developmental divergence", "synthetic minds", "reproducibility"]
     }
   ]
 }
