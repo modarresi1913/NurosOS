@@ -285,10 +285,14 @@ class TestHippoCoreConfig(unittest.TestCase):
     """PHASE 3: config is empty. PHASE 4+ will add knobs."""
 
     def test_config_to_dict(self):
+        """PHASE 5 update: config now carries replay_policy + replay_seed
+        knobs. The 'phase' field tracks the latest phase that touched
+        the config (PHASE 5 = replay policies)."""
         cfg = HippoCoreMemoryConfig()
         d = cfg.to_dict()
-        self.assertEqual(d["phase"], 3)
-        self.assertEqual(d["knobs"], {})
+        self.assertEqual(d["phase"], 5)
+        self.assertIn("replay_policy", d["knobs"])
+        self.assertIn("replay_seed", d["knobs"])
 
     def test_config_can_be_passed_to_hippocore_memory(self):
         cfg = HippoCoreMemoryConfig()

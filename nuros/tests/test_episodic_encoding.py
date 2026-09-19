@@ -400,16 +400,22 @@ class TestHippoCoreInspectShowsProvenance(unittest.TestCase):
 
 
 class TestHippoCoreSchemaVersionBump(unittest.TestCase):
-    """PHASE 4 bump: HippoCoreMemory.checkpoint() now reports a v1.phase4
-    schema_version (was v1.phase3 in PHASE 3)."""
+    """Schema version tracking — bumped as HippoCoreMemory evolves."""
 
-    def test_schema_version_is_phase4(self):
+    def test_schema_version_is_at_least_phase4(self):
+        """The schema_version has been bumped through PHASE 3 → 4 → 5
+        as the engine has gained capabilities. The current floor is
+        phase4 (PHASE 4 added episodic encoding + provenance).
+        PHASE 5 bumped it to phase5 (replay policies)."""
         hcm = HippoCoreMemory()
-        self.assertEqual(hcm.SCHEMA_VERSION, "nuros.hippocore.HippoCoreMemory.v1.phase4")
+        self.assertTrue(
+            hcm.SCHEMA_VERSION.startswith("nuros.hippocore.HippoCoreMemory.v1.phase"),
+            f"unexpected schema_version: {hcm.SCHEMA_VERSION}",
+        )
+        # PHASE 5 bumps to v1.phase5.
+        self.assertEqual(hcm.SCHEMA_VERSION, "nuros.hippocore.HippoCoreMemory.v1.phase5")
         payload = hcm.checkpoint()
         self.assertEqual(payload["schema_version"], hcm.SCHEMA_VERSION)
-        # engine_phase stays 3 (the PHASE 3 wrapper layer); the encode()
-        # override adds PHASE 4 fields but doesn't bump engine_phase.
 
     def test_hippocore_restores_phase3_payload(self):
         """Backward-compat: HippoCoreMemory can restore a payload with

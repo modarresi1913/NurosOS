@@ -32,31 +32,52 @@ from nuros.epistemic import EpistemicKernel, EpistemicLabel
 from nuros.memory import DefaultMemoryContract, MemoryEntry, MemoryType
 from nuros.memory_engine import MemoryEngine
 from nuros.memory_provenance import MemoryProvenance
+from nuros.hippocore.replay_policy import (
+    POLICIES,
+    RandomReplayPolicy,
+    ReplayPolicy,
+    ReplaySelection,
+    make_policy,
+)
 
 
 class HippoCoreMemoryConfig:
     """Configuration for ``HippoCoreMemory``.
 
-    PHASE 3: no knobs (the adapter is behaviour-identical to the
-    default). PHASE 4+ will add:
-      - pattern_separation_threshold: float  (PHASE 4)
-      - replay_policy: str                 (PHASE 5: 'recent' |
-                                              'importance_weighted' |
-                                              'novelty_weighted' |
-                                              'prediction_error_weighted' |
-                                              'random')
+    PHASE 5: adds ``replay_policy`` knob (one of 'recent',
+    'importance_weighted', 'novelty_weighted',
+    'prediction_error_weighted', 'random') and ``replay_seed`` for
+    deterministic replay selection.
+
+    PHASE 6+ will add:
+      - pattern_separation_threshold: float  (PHASE 4 — deferred)
       - max_episodes: Optional[int]        (PHASE 6 memory budget)
       - max_memory_bytes: Optional[int]    (PHASE 6 memory budget)
       - consolidation_batch_size: int     (PHASE 6)
       - consolidation_similarity_threshold: float  (PHASE 6)
     """
 
-    def __init__(self) -> None:
-        # PHASE 4+ fields land here. For PHASE 3, no knobs.
-        pass
+    def __init__(
+        self,
+        replay_policy: str = "recent",
+        replay_seed: Optional[int] = None,
+    ) -> None:
+        if replay_policy not in POLICIES:
+            raise ValueError(
+                f"Unknown replay_policy {replay_policy!r}. "
+                f"Known: {sorted(POLICIES.keys())}"
+            )
+        self.replay_policy = replay_policy
+        self.replay_seed = replay_seed
 
     def to_dict(self) -> dict[str, Any]:
-        return {"phase": 3, "knobs": {}}
+        return {
+            "phase": 5,
+            "knobs": {
+                "replay_policy": self.replay_policy,
+                "replay_seed": self.replay_seed,
+            },
+        }
 
 
 class HippoCoreMemory(MemoryEngine):
@@ -70,7 +91,7 @@ class HippoCoreMemory(MemoryEngine):
     no caller breaks.
     """
 
-    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase4"
+    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase5"
 
     def __init__(
         self,
@@ -78,23 +99,29 @@ class HippoCoreMemory(MemoryEngine):
         epistemic_kernel: Optional[EpistemicKernel] = None,
         organism_id: Optional[str] = None,
         environment_hash: Optional[str] = None,
+        replay_policy: Optional[ReplayPolicy] = None,
     ) -> None:
         self._config = config or HippoCoreMemoryConfig()
-        # In PHASE 3-4, we delegate non-encode operations to
+        # In PHASE 3-5, we delegate non-encode operations to
         # DefaultMemoryContract. PHASE 4 overrides encode() to populate
         # the new episodic-encoding fields and structured_provenance.
-        # PHASE 5 will override replay(); PHASE 6 will override
-        # consolidate() and may swap the inner engine for a real
-        # dual-store (fast episodic + slow consolidated).
+        # PHASE 5 overrides replay() to support policy-driven selection.
+        # PHASE 6 will override consolidate() and may swap the inner
+        # engine for a real dual-store (fast episodic + slow consolidated).
         self._inner = DefaultMemoryContract(epistemic_kernel=epistemic_kernel)
         # PHASE 4: the encoding context (organism + environment) is set
         # via the constructor OR via encode_episode(organism_id=...).
-        # encode() reads these to populate MemoryEntry.organism_id and
-        # MemoryEntry.environment_state. They are optional — when not
-        # set, encode() falls back to the DefaultMemoryContract behaviour
-        # (organism_id=None, environment_state=None).
         self._encoding_organism_id = organism_id
         self._encoding_environment_hash = environment_hash
+        # PHASE 5: build the replay policy from config OR accept an
+        # already-instantiated ReplayPolicy.
+        if replay_policy is not None:
+            self._replay_policy = replay_policy
+        else:
+            self._replay_policy = make_policy(self._config.replay_policy)
+        # PHASE 5: last replay selection telemetry (for inspect() /
+        # checkpoint() consumers).
+        self._last_replay_selection: Optional[ReplaySelection] = None
 
     # ====================================================================
     # Encoding (PHASE 4) — populates the new episodic-encoding fields
@@ -280,6 +307,26 @@ class HippoCoreMemory(MemoryEngine):
         self._encoding_organism_id = organism_id
         self._encoding_environment_hash = environment_hash
 
+    @property
+    def replay_policy(self) -> ReplayPolicy:
+        """The currently-configured ReplayPolicy instance."""
+        return self._replay_policy
+
+    def set_replay_policy(self, policy: ReplayPolicy) -> None:
+        """Swap the replay policy at runtime. Used by PHASE 9 benchmarks
+        to compare policies on identical input sets without rebuilding
+        the HippoCoreMemory instance."""
+        self._replay_policy = policy
+        # Reset last selection telemetry.
+        self._last_replay_selection = None
+
+    @property
+    def last_replay_selection(self) -> Optional[ReplaySelection]:
+        """Telemetry: the result of the most recent replay() call that
+        used a policy. None if replay() has not been called with an
+        ``n`` argument yet. Used by inspect() and PHASE 9 benchmarks."""
+        return self._last_replay_selection
+
     def revise(
         self, memory_id: str, field_name: str, new_value: Any,
         justification: str, author: str = "system",
@@ -369,13 +416,47 @@ class HippoCoreMemory(MemoryEngine):
         n: Optional[int] = None,
         generative: bool = False,
     ) -> list[MemoryEntry]:
-        """PHASE 3: delegated (generative=True is a no-op).
-        PHASE 5: if generative=True, return RECONSTRUCTED memories
-        re-encoded from compressed traces with fresh memory_ids."""
-        return self._inner.replay(
-            memory_type=memory_type, tags=tags, time_range=time_range,
-            n=n, generative=generative,
-        )
+        """PHASE 5 replay: when ``n`` is provided, delegates selection
+        to the configured ReplayPolicy. Otherwise falls back to the
+        DefaultMemoryContract.replay() behaviour (return all matching
+        memories sorted by timestamp ascending).
+
+        ``generative=True`` is still a no-op in PHASE 5 (will land in
+        PHASE 6 alongside the real consolidation pipeline). The
+        returned entries are raw stored memories (not reconstructed).
+
+        The policy selection is recorded in ``self._last_replay_selection``
+        for telemetry — ``inspect()`` and PHASE 9 benchmarks read it
+        to confirm which policy produced a given selection.
+        """
+        if n is None:
+            # No n specified — fall back to default behaviour (return all).
+            return self._inner.replay(
+                memory_type=memory_type, tags=tags, time_range=time_range,
+                n=n, generative=generative,
+            )
+        # PHASE 5: use the policy to select n memories.
+        # First, apply the same filters DefaultMemoryContract.replay()
+        # uses (memory_type, tags, time_range). Then run the policy.
+        candidates: list[MemoryEntry] = []
+        for entry in self._inner.iter_all():
+            if entry.forgotten:
+                continue
+            if memory_type and entry.memory_type != memory_type:
+                continue
+            if tags and not tags.issubset(entry.tags):
+                continue
+            if time_range:
+                t_lo, t_hi = time_range
+                if not (t_lo <= entry.timestamp <= t_hi):
+                    continue
+            candidates.append(entry)
+        # PHASE 5: run the policy. Seed from config (for reproducibility)
+        # unless the caller overrides via a per-call attribute.
+        seed = self._config.replay_seed
+        selection = self._replay_policy.select(candidates, n=n, seed=seed)
+        self._last_replay_selection = selection
+        return selection.entries
 
     # ====================================================================
     # Consolidation — PHASE 6 will override with the real fast→slow pipeline.
