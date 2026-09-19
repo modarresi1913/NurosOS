@@ -13,6 +13,7 @@ new ADR that supersedes the old one.
 | 0003    | SPP sparsity threshold is 5%                | Accepted    |
 | 0004    | AMS replaces VFS                            | Accepted    |
 | 0005    | Loihi integration plan                      | Proposed    |
+| 0006    | HippoCore Memory Engine integration        | Accepted (Phase 15) |
 
 ## Format
 

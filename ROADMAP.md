@@ -150,6 +150,53 @@ into an experimental platform for synthetic development.
 - [ ] Minimal experimental population engine
 - [ ] Only after deterministic developmental experiments are functional
 
+### Phase 15 — HippoCore Integration ✅ (Implemented on `feature/hippocore-integration-audit`)
+
+The HippoCore integration transforms NurosOS from a runtime for
+artificial cognitive organisms into a developmental intelligence
+substrate where memory is a first-class computational mechanism.
+
+Ten phases shipped on the `feature/hippocore-integration-audit` branch:
+
+| Sub-phase | Commit | Description | Tests |
+|-----------|--------|-------------|-------|
+| 15.1 — Audit | `254875c` | 1051-line audit (24 sections + 2 appendices) anchored to file:line evidence | — |
+| 15.2 — Memory Contract stabilization | `f29a768` | `MemoryEngine` ABC + `DefaultMemoryContract` refactor; soft-delete fix; checkpoint/restore; 6 bug-fixes from audit Appendix B | 83 |
+| 15.3 — HippoCore adapter scaffold | `5c58859` | `HippoCoreMemory(MemoryEngine)` thin wrapper; 25 golden-file equivalence tests | 108 |
+| 15.4 — Episodic encoding + provenance | `b5dcc6e` | `MemoryProvenance` dataclass; `MemoryEntry` schema extension (organism_id, action, outcome, prediction, environment_state, causal_metadata, structured_provenance); `encode_episode()` full-schema entry point | 128 |
+| 15.5 — Replay policies | `3e60a63` | 5 policies (recent / importance_weighted / novelty_weighted / prediction_error_weighted / random); all deterministic when seeded | 169 |
+| 15.6 — Consolidation pipeline | `f5dc734` | 2 strategies (tag_jaccard / content_prefix); real fast→slow pipeline; sources marked CONSOLIDATED + importance lowered; sources↔target associations | 201 |
+| 15.7 — Memory event emission | `b3e97cf` | 6 `MemoryEventKind`s; `MemoryEventEmitter` event bus; `set_step()` for trajectory alignment | 220 |
+| 15.8 — Causal graph integration (Python side) | `74fb2da` | 17 `EventKind` variants (11 original Rust + 6 PHASE 8 memory kinds); `PythonCausalGraph`; `trace_outcome_to_experience()` walk | 247 |
+| 15.9 — Benchmark suite | `bc411cf` | 10 benchmarks in `benchmarks/memory/`; multi-seed runner with JSON/CSV/Markdown export; all deterministic | — (benchmarks ARE tests) |
+| 15.10 — Documentation and release | (this phase) | 9 new docs + ADR 0006 + final report | — |
+
+**Total**: 247 tests passing (Python side). Rust-side tests (57) still
+pass per README quickstart when `maturin build --release` is run.
+
+**Status**: [IMPLEMENTED] PHASES 1-10 (Python side).
+            [PROPOSED]    Rust-side wiring for PHASES 7+8 (needs
+                          maturin build) + memory-dependent behavior
+                          (Organism.tick consults MemoryEngine during
+                          action selection — audit §36 stage 5).
+
+**LLM dependency**: NONE (master prompt §23 satisfied).
+
+**Branch**: `feature/hippocore-integration-audit`. Pull-request
+comparison: https://github.com/modarresi1913/NurosOS/compare/main...feature/hippocore-integration-audit
+
+See:
+- `docs/HIPPOCORE_INTEGRATION_AUDIT.md` (Phase 1 audit, 1051 lines)
+- `docs/HIPPOCORE_INTEGRATION.md` (integration guide)
+- `docs/MEMORY_ARCHITECTURE.md` (memory architecture)
+- `docs/DEVELOPMENTAL_MEMORY.md` (developmental memory)
+- `docs/BENCHMARKS.md` (benchmark guide)
+- `docs/METRICS.md` (multidimensional metric profile)
+- `docs/REPRODUCIBILITY.md` (reproducibility invariants)
+- `docs/EXPERIMENTS.md` (experiment guide)
+- `docs/HIPPOCORE_INTEGRATION_REPORT.md` (final report)
+- `docs/adr/0006-hippocore-memory-engine.md` (ADR)
+
 ## Version 0.4.0 — Neural-Cognitive Bridge
 - [ ] Bridge Rust SNN substrate to Python cognitive kernel
 - [ ] FFI bindings for real-time neural simulation
