@@ -52,6 +52,12 @@ from nuros.memory_events import (
     MemoryEventEmitter,
     MemoryEventKind,
 )
+from nuros.causal_graph import (
+    CausalEvent,
+    EventKind,
+    PythonCausalGraph,
+    memory_event_kind_to_event_kind,
+)
 
 
 class HippoCoreMemoryConfig:
@@ -126,7 +132,7 @@ class HippoCoreMemory(MemoryEngine):
     no caller breaks.
     """
 
-    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase7"
+    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase8"
 
     def __init__(
         self,
@@ -137,6 +143,7 @@ class HippoCoreMemory(MemoryEngine):
         replay_policy: Optional[ReplayPolicy] = None,
         consolidation_strategy: Optional[ConsolidationStrategy] = None,
         event_emitter: Optional[MemoryEventEmitter] = None,
+        causal_graph: Optional[PythonCausalGraph] = None,
     ) -> None:
         self._config = config or HippoCoreMemoryConfig()
         self._inner = DefaultMemoryContract(epistemic_kernel=epistemic_kernel)
@@ -156,20 +163,53 @@ class HippoCoreMemory(MemoryEngine):
                 self._config.consolidation_strategy,
             )
         self._last_consolidation_result: Optional[ConsolidationResult] = None
-        # PHASE 7: memory event emitter. External consumers (Organism,
-        # DevelopmentalTrajectory adapter, PHASE 9 benchmarks) register
-        # callbacks via self.events.on(callback).
+        # PHASE 7: memory event emitter.
         self._event_emitter = event_emitter or MemoryEventEmitter()
-        # PHASE 7: the events emitted so far (in-memory ring; full list
-        # for short runs, capped at 1000 to prevent unbounded growth in
-        # long-running organisms — the persistent record goes through
-        # the registered callbacks to the trajectory).
         self._event_log: list[MemoryEvent] = []
         self._event_log_cap: int = 1000
-        # PHASE 7: optional developmental step counter — set externally
-        # by the Organism runtime via set_step(n). Used to populate
-        # MemoryEvent.step.
         self._current_step: Optional[int] = None
+        # PHASE 8: optional causal graph. When set, every emitted MemoryEvent
+        # is also recorded into the graph as a CausalEvent. The graph
+        # supports the trace_outcome_to_experience() walk (audit sec 15,
+        # master prompt sec 20).
+        self._causal_graph = causal_graph
+        if self._causal_graph is not None:
+            # Register a PHASE 8 callback that translates MemoryEvent ->
+            # CausalEvent. The callback runs synchronously (per the
+            # MemoryEventEmitter contract).
+            self._event_emitter.on(self._record_memory_event_in_causal_graph)
+        # PHASE 8: tracks the last CausalEvent ID for the current step,
+        # so dependent events can chain via depends_on. Reset by set_step().
+        self._last_causal_event_id: Optional[int] = None
+
+    def _record_memory_event_in_causal_graph(self, ev: MemoryEvent) -> None:
+        """PHASE 8 callback: translate a MemoryEvent into a CausalEvent
+        in the optional PythonCausalGraph. The CausalEvent's depends_on
+        points to the previous CausalEvent in the same step (if any),
+        enabling the trace_outcome_to_experience() walk."""
+        if self._causal_graph is None:
+            return
+        kind = memory_event_kind_to_event_kind(ev.kind.value)
+        depends_on: list[int] = []
+        if self._last_causal_event_id is not None:
+            depends_on.append(self._last_causal_event_id)
+        payload = {
+            "memory_id": ev.memory_id,
+            "engine": ev.engine,
+            "details": ev.details,
+        }
+        new_id = self._causal_graph.record(
+            step=ev.step,
+            kind=kind,
+            description=f"{ev.kind.value} memory_id={ev.memory_id}",
+            payload=payload,
+            depends_on=depends_on,
+        )
+        # Track for the next event in the same step.
+        self._last_causal_event_id = new_id
+        # Also write back the causal_event_id on the MemoryEvent so
+        # downstream consumers (PHASE 9 benchmarks) can correlate.
+        ev.causal_event_id = new_id
 
     # ====================================================================
     # Encoding (PHASE 4) — populates the new episodic-encoding fields
@@ -387,11 +427,33 @@ class HippoCoreMemory(MemoryEngine):
         full event stream, register a callback via ``events.on(...)``."""
         return list(self._event_log)
 
+    @property
+    def causal_graph(self) -> Optional[PythonCausalGraph]:
+        """The optional PythonCausalGraph this engine publishes to.
+        None if no graph was attached at construction. Read-only —
+        to attach a graph post-construction, use
+        ``attach_causal_graph(graph)``."""
+        return self._causal_graph
+
+    def attach_causal_graph(self, graph: PythonCausalGraph) -> None:
+        """Attach a PythonCausalGraph post-construction. Subsequent
+        memory events will be recorded into the graph. If a graph was
+        already attached, this swaps it (the old graph is NOT cleared).
+        """
+        if self._causal_graph is None:
+            self._event_emitter.on(self._record_memory_event_in_causal_graph)
+        self._causal_graph = graph
+
     def set_step(self, step: Optional[int]) -> None:
         """Set the current developmental step. The Organism runtime calls
         this at the start of each tick so memory events get a step
-        number for trajectory alignment. Pass None to clear."""
+        number for trajectory alignment. Pass None to clear.
+
+        PHASE 8: also resets _last_causal_event_id so the next memory
+        event in the new step starts a fresh depends_on chain.
+        """
         self._current_step = step
+        self._last_causal_event_id = None  # reset chain per step
 
     def _emit(
         self,
