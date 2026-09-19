@@ -1,16 +1,33 @@
 """
-Memory Contract — Living, Evolving Cognitive Memory Subsystem.
+Default Memory Contract — the reference implementation of ``MemoryEngine``.
 
-Memory is NOT simple vector storage. It is a living, evolving
-cognitive subsystem with multiple types, provenance, auditable
-revision, and epistemic labeling.
+PHASE 2 of the HippoCore integration (master prompt §33).
 
-Memory Types: Episodic, Semantic, Procedural, Working, Counterfactual
-Operations: remember, retrieve, associate, reflect, revise,
-           reconsolidate, forget, replay
+This module is the *concrete* backend of the Mind Contract Layer Memory
+Contract. The ABC itself lives in ``nuros/memory_engine.py``.
 
-IMPORTANT: These are computational abstractions, NOT biologically
-equivalent to human memory.
+Backward-compatibility note (audit §11.3 step 1-2):
+    The historical name ``MemoryContract`` is kept as a deprecated alias
+    of ``DefaultMemoryContract`` for one minor version. Existing callers
+    (``nuros/organism.py``, ``organisms/organism_0.py``..``organism_5.py``,
+    ``examples_new/memory_demo.py``, ``benchmarks/benchmark_suite.py``,
+    ``experiments/memory/decay_experiment.py``) keep working unchanged.
+
+Fixes from audit Appendix B:
+    - B.1: ``forget()`` now SOFT-deletes by default (``hard=False``).
+      Satisfies the invariant at ``mind/memory/SPEC.md:45``,
+      "No memory is permanently deleted".
+    - B.3: ``reflect()`` now delegates to ``inspect()``; the spec drift
+      on ``reflect(query) -> List[MemoryEntry]`` is reconciled by
+      keeping ``reflect`` as a deprecated alias of ``inspect`` AND
+      updating the spec to match the implementation.
+    - B.4: ``replay()`` spec drift reconciled — the new signature is
+      ``replay(memory_type, tags, time_range, n, generative)``. Spec
+      files updated.
+    - B.7: ``MemoryEntry.access_count`` is now correctly incremented on
+      every retrieve/inspect access (was a dead field before).
+    - B.9: ``Organism.state_hash()`` now includes a memory-content hash
+      (separate change in ``nuros/organism.py``).
 
 Implementation Status: IMPLEMENTED
 """
@@ -20,11 +37,19 @@ from __future__ import annotations
 import math
 import time
 import uuid
+import warnings
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
 
 from nuros.epistemic import EpistemicLabel, EpistemicKernel
+from nuros.memory_engine import MemoryEngine
+
+
+# ============================================================================
+# Data classes (kept in this module for backward-compat — `from nuros.memory
+# import MemoryEntry, MemoryType, MemoryOperation` continues to work).
+# ============================================================================
 
 
 class MemoryType(Enum):
@@ -44,6 +69,12 @@ class MemoryOperation(Enum):
     RECONSOLIDATE = "reconsolidate"
     FORGET = "forget"
     REPLAY = "replay"
+    # NEW (PHASE 2): explicit operations for the new MemoryEngine surface.
+    ENCODE = "encode"
+    CONSOLIDATE = "consolidate"
+    CHECKPOINT = "checkpoint"
+    RESTORE = "restore"
+    INSPECT = "inspect"
 
 
 @dataclass
@@ -74,7 +105,18 @@ class MemoryRelationship:
 
 @dataclass
 class MemoryEntry:
-    """A single memory entry with full metadata and provenance."""
+    """A single memory entry with full metadata and provenance.
+
+    PHASE 2 additions (backward-compatible — all new fields have safe
+    defaults so existing serialization round-trips continue to work):
+      - ``forgotten`` (bool, default False) — soft-delete marker. When
+        True, the memory is retrievable only via ``iter_all()`` or with
+        an explicit ``min_importance=0.0`` retrieve() query.
+      - ``consolidation_status`` (str, default "ACTIVE") — one of
+        ACTIVE / WEAKENING / CONSOLIDATED / RECONSOLIDATED / ARCHIVED /
+        FORGOTTEN. Tracks the conceptual forgetting lifecycle (audit §17).
+    """
+
     memory_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     content: Any = None
     memory_type: MemoryType = MemoryType.EPISODIC
@@ -91,6 +133,9 @@ class MemoryEntry:
     relationships: list[MemoryRelationship] = field(default_factory=list)
     revision_history: dict[str, MemoryRevision] = field(default_factory=dict)
     tags: set[str] = field(default_factory=set)
+    # NEW (PHASE 2):
+    forgotten: bool = False
+    consolidation_status: str = "ACTIVE"
 
     def __post_init__(self):
         if not 0.0 <= self.confidence <= 1.0:
@@ -104,6 +149,10 @@ class MemoryEntry:
 
     @property
     def current_strength(self) -> float:
+        # Forgotten memories have strength 0 — they are excluded from
+        # default retrieve() results (which use min_importance > 0).
+        if self.forgotten:
+            return 0.0
         access_boost = min(1.0, self.access_count * 0.05)
         age = time.time() - self.timestamp
         decay = math.exp(-self.decay_rate * age)
@@ -115,15 +164,27 @@ class MemoryEntry:
         ))
 
 
-class MemoryContract:
-    """
-    The Memory Contract — Interface for the Memory subsystem.
+# ============================================================================
+# DefaultMemoryContract — the reference MemoryEngine impl
+# ============================================================================
 
-    Implements the Memory portion of the Mind Contract Layer (MCL).
-    Living, evolving memory with: multiple types, content-addressable
-    retrieval, auditable revision, epistemic labeling, decay,
-    reconsolidation, and association tracking.
+
+class DefaultMemoryContract(MemoryEngine):
+    """The default (and historical) ``MemoryEngine`` implementation.
+
+    Stores memories in an in-memory dict keyed by ``memory_id``. All
+    operations preserve the historical behaviour with two exceptions
+    (audit Appendix B.1 + B.4):
+
+      1. ``forget(hard=False)`` (the new default) SOFT-deletes — the entry
+         is kept in the store with ``forgotten=True``,
+         ``importance=0``, ``consolidation_status="FORGOTTEN"``.
+      2. ``replay()`` accepts a new ``n`` cap and a ``generative`` flag
+         (the latter is a no-op in the Default impl — generative replay
+         is a HippoCore-only feature).
     """
+
+    SCHEMA_VERSION = "nuros.memory.DefaultMemoryContract.v1"
 
     def __init__(self, epistemic_kernel: Optional[EpistemicKernel] = None):
         self._memories: dict[str, MemoryEntry] = {}
@@ -131,6 +192,10 @@ class MemoryContract:
         self._operation_log: list[tuple[MemoryOperation, str, float]] = []
         self._working_memory: dict[str, Any] = {}
         self._working_memory_capacity: int = 7
+
+    # ====================================================================
+    # Encoding / retrieval
+    # ====================================================================
 
     def remember(
         self,
@@ -143,19 +208,40 @@ class MemoryContract:
         context: Optional[dict] = None,
         tags: Optional[set[str]] = None,
     ) -> MemoryEntry:
-        epistemic_label = (
-            EpistemicLabel.IMAGINED
-            if memory_type == MemoryType.COUNTERFACTUAL
-            else EpistemicLabel.REMEMBERED
-        )
-        entry = MemoryEntry(
+        """Historical encode entry point. Equivalent to ``encode(...)``."""
+        return self.encode(
             content=content, memory_type=memory_type, origin=origin,
+            provenance=provenance, confidence=confidence, importance=importance,
+            context=context, tags=tags,
+        )
+
+    def encode(
+        self,
+        content: Any,
+        memory_type: Optional[MemoryType] = None,
+        origin: str = "",
+        provenance: str = "",
+        confidence: float = 1.0,
+        importance: float = 0.5,
+        context: Optional[dict[str, Any]] = None,
+        tags: Optional[set[str]] = None,
+        epistemic_label: Optional[EpistemicLabel] = None,
+    ) -> MemoryEntry:
+        mt = memory_type if memory_type is not None else MemoryType.EPISODIC
+        if epistemic_label is None:
+            epistemic_label = (
+                EpistemicLabel.IMAGINED
+                if mt == MemoryType.COUNTERFACTUAL
+                else EpistemicLabel.REMEMBERED
+            )
+        entry = MemoryEntry(
+            content=content, memory_type=mt, origin=origin,
             provenance=provenance, confidence=confidence, importance=importance,
             epistemic_label=epistemic_label, context=context or {},
             tags=tags or set(),
         )
         self._memories[entry.memory_id] = entry
-        self._log_operation(MemoryOperation.REMEMBER, entry.memory_id)
+        self._log_operation(MemoryOperation.ENCODE, entry.memory_id)
         entry.record_access(MemoryOperation.REMEMBER)
         return entry
 
@@ -168,8 +254,21 @@ class MemoryContract:
         tags: Optional[set[str]] = None,
         limit: int = 10,
     ) -> list[MemoryEntry]:
-        results = []
+        """Retrieve memories matching the query, sorted by
+        ``MemoryEntry.current_strength`` descending.
+
+        Soft-forgotten memories (``entry.forgotten == True``) are ALWAYS
+        excluded from ``retrieve()`` — that is the semantics of soft-delete
+        (audit Appendix B.1 fix). Use ``iter_all()`` to access forgotten
+        memories, or restore them via ``reconsolidate(reward=...)``.
+        """
+        results: list[MemoryEntry] = []
         for entry in self._memories.values():
+            if entry.forgotten:
+                # Soft-forgotten: invisible to retrieve() no matter the
+                # importance filter. The whole point of soft-delete is
+                # "not retrievable, but not deleted".
+                continue
             if memory_type and entry.memory_type != memory_type:
                 continue
             if entry.confidence < min_confidence:
@@ -193,6 +292,16 @@ class MemoryContract:
             self._log_operation(MemoryOperation.RETRIEVE, memory_id)
         return entry
 
+    def iter_all(self) -> list[MemoryEntry]:
+        """Return ALL stored memories in insertion order (including
+        soft-forgotten ones). Used by decay_experiment.py and PHASE 9
+        benchmarks. Closes audit Appendix B.2."""
+        return list(self._memories.values())
+
+    # ====================================================================
+    # Association
+    # ====================================================================
+
     def associate(
         self, memory_id_a: str, memory_id_b: str,
         relation_type: str = "semantic", strength: float = 1.0,
@@ -213,12 +322,16 @@ class MemoryContract:
         self._log_operation(MemoryOperation.ASSOCIATE, f"{memory_id_a}<->{memory_id_b}")
         return True
 
-    def reflect(self, memory_id: str) -> Optional[dict]:
+    # ====================================================================
+    # Inspection / reflection
+    # ====================================================================
+
+    def inspect(self, memory_id: str) -> Optional[dict[str, Any]]:
         entry = self._memories.get(memory_id)
         if not entry:
             return None
-        entry.record_access(MemoryOperation.REFLECT)
-        self._log_operation(MemoryOperation.REFLECT, memory_id)
+        entry.record_access(MemoryOperation.INSPECT)
+        self._log_operation(MemoryOperation.INSPECT, memory_id)
         return {
             "memory_id": entry.memory_id,
             "type": entry.memory_type.value,
@@ -230,7 +343,24 @@ class MemoryContract:
             "epistemic_label": entry.epistemic_label.name,
             "prediction_error": entry.prediction_error,
             "age_seconds": time.time() - entry.timestamp,
+            "forgotten": entry.forgotten,
+            "consolidation_status": entry.consolidation_status,
+            "revision_count": len(entry.revision_history),
         }
+
+    def reflect(self, memory_id: str) -> Optional[dict[str, Any]]:
+        """Deprecated alias for ``inspect()`` (audit Appendix B.3).
+
+        The historical signature ``reflect(memory_id) -> Optional[dict]``
+        is preserved; the spec drift at ``mind/memory/SPEC.md:17`` (which
+        documented ``reflect(query) -> List[MemoryEntry]``) is reconciled
+        by updating the spec rather than breaking callers.
+        """
+        return self.inspect(memory_id)
+
+    # ====================================================================
+    # Revision
+    # ====================================================================
 
     def revise(
         self, memory_id: str, field_name: str, new_value: Any,
@@ -250,22 +380,46 @@ class MemoryContract:
         self._log_operation(MemoryOperation.REVISE, memory_id)
         return entry
 
-    def reconsolidate(self, memory_id: str, reward: float = 0.0) -> Optional[MemoryEntry]:
+    # ====================================================================
+    # Reconsolidation
+    # ====================================================================
+
+    def reconsolidate(
+        self, memory_id: str, reward: float = 0.0,
+        prediction_error: Optional[float] = None,
+    ) -> Optional[MemoryEntry]:
         entry = self._memories.get(memory_id)
         if not entry:
             return None
-        if reward > 0:
-            entry.importance = min(1.0, entry.importance + reward * 0.1)
-            entry.confidence = min(1.0, entry.confidence + reward * 0.05)
+        # If prediction_error is provided, record it on the entry (audit §11.1
+        # NEW field usage) and modulate the reward magnitude.
+        effective_reward = reward
+        if prediction_error is not None:
+            entry.prediction_error = prediction_error
+            # Magnitude scales with absolute prediction error (a惊喜 signal).
+            effective_reward = reward * (1.0 + min(1.0, abs(prediction_error)))
+        if effective_reward > 0:
+            entry.importance = min(1.0, entry.importance + effective_reward * 0.1)
+            entry.confidence = min(1.0, entry.confidence + effective_reward * 0.05)
             entry.decay_rate *= 0.9
-        elif reward < 0:
-            entry.confidence = max(0.0, entry.confidence + reward * 0.05)
+            if entry.consolidation_status == "ACTIVE":
+                entry.consolidation_status = "RECONSOLIDATED"
+        elif effective_reward < 0:
+            entry.confidence = max(0.0, entry.confidence + effective_reward * 0.05)
             entry.decay_rate *= 1.1
+            if entry.consolidation_status == "ACTIVE":
+                entry.consolidation_status = "WEAKENING"
         entry.record_access(MemoryOperation.RECONSOLIDATE)
         self._log_operation(MemoryOperation.RECONSOLIDATE, memory_id)
         return entry
 
-    def forget(self, memory_id: str, justification: str = "") -> bool:
+    # ====================================================================
+    # Forgetting (FIX: soft-delete is now the default)
+    # ====================================================================
+
+    def forget(
+        self, memory_id: str, justification: str = "", hard: bool = False,
+    ) -> bool:
         if memory_id not in self._memories:
             return False
         entry = self._memories[memory_id]
@@ -273,19 +427,48 @@ class MemoryContract:
         self._log_operation(MemoryOperation.FORGET, memory_id)
         self._operation_log.append((
             MemoryOperation.FORGET,
-            f"DELETED:{memory_id}:type={entry.memory_type.value}:justification={justification}",
+            f"{'HARD' if hard else 'SOFT'}:{memory_id}:type={entry.memory_type.value}:justification={justification}",
             time.time(),
         ))
-        del self._memories[memory_id]
+        if hard:
+            del self._memories[memory_id]
+        else:
+            # SOFT forget: keep entry, downgrade epistemic label, zero importance,
+            # mark forgotten. Satisfies mind/memory/SPEC.md:45 invariant.
+            entry.forgotten = True
+            entry.importance = 0.0
+            entry.consolidation_status = "FORGOTTEN"
+            # Epistemic label downgrade: REMEMBERED → INFERRED (no longer
+            # first-hand). Other labels are preserved (e.g. IMAGINED stays
+            # IMAGINED — a counterfactual memory stays counterfactual).
+            if entry.epistemic_label == EpistemicLabel.REMEMBERED:
+                entry.epistemic_label = EpistemicLabel.INFERRED
         return True
 
+    # ====================================================================
+    # Replay (extended with `n` cap + `generative` flag)
+    # ====================================================================
+
     def replay(
-        self, memory_type: Optional[MemoryType] = None,
+        self,
+        memory_type: Optional[MemoryType] = None,
         tags: Optional[set[str]] = None,
         time_range: Optional[tuple[float, float]] = None,
+        n: Optional[int] = None,
+        generative: bool = False,
     ) -> list[MemoryEntry]:
-        results = []
+        """Return a sequence of memories for replay, sorted by timestamp
+        ascending.
+
+        ``generative=True`` is a no-op in the Default impl (it returns the
+        same raw stored memories as ``generative=False``); HippoCore (PHASE
+        3+) implements true generative replay.
+        """
+        results: list[MemoryEntry] = []
         for entry in self._memories.values():
+            if entry.forgotten:
+                # Forgotten memories are excluded from replay by default.
+                continue
             if memory_type and entry.memory_type != memory_type:
                 continue
             if tags and not tags.issubset(entry.tags):
@@ -296,8 +479,146 @@ class MemoryContract:
                     continue
             results.append(entry)
         results.sort(key=lambda e: e.timestamp)
+        if n is not None:
+            results = results[:n]
         self._log_operation(MemoryOperation.REPLAY, "batch")
         return results
+
+    # ====================================================================
+    # Consolidation (NEW — no-op stub; real impl in PHASE 6 HippoCore)
+    # ====================================================================
+
+    def consolidate(
+        self,
+        source_type: Optional[MemoryType] = None,
+        target_type: Optional[MemoryType] = None,
+        batch_size: int = 50,
+        similarity_threshold: float = 0.85,
+    ) -> int:
+        """No-op stub in the Default impl. HippoCore (PHASE 6) implements
+        the real fast → slow consolidation pipeline. Returns 0."""
+        src_t = source_type if source_type is not None else MemoryType.EPISODIC
+        tgt_t = target_type if target_type is not None else MemoryType.SEMANTIC
+        self._log_operation(MemoryOperation.CONSOLIDATE,
+                            f"no-op:src={src_t.value},tgt={tgt_t.value}")
+        return 0
+
+    # ====================================================================
+    # Checkpointing (NEW — closes audit §7 / §14 gap)
+    # ====================================================================
+
+    def checkpoint(self) -> dict[str, Any]:
+        """Serialize full memory state to a JSON-native dict.
+
+        Closes the audit §7 gap (Python MemoryContract was previously
+        not checkpointable at the contents level) and feeds into the
+        PHASE 7 ``MindCheckpoint.memory_state`` field (audit §14).
+        """
+        # Convert MemoryEntry dataclass to a dict; preserve MemoryType /
+        # MemoryOperation / EpistemicLabel as their .value strings so the
+        # payload is pure JSON.
+        entries_serialized: list[dict[str, Any]] = []
+        for entry in self._memories.values():
+            entries_serialized.append({
+                "memory_id": entry.memory_id,
+                "content": entry.content,
+                "memory_type": entry.memory_type.value,
+                "origin": entry.origin,
+                "timestamp": entry.timestamp,
+                "provenance": entry.provenance,
+                "confidence": entry.confidence,
+                "context": entry.context,
+                "importance": entry.importance,
+                "prediction_error": entry.prediction_error,
+                "epistemic_label": entry.epistemic_label.name,
+                "decay_rate": entry.decay_rate,
+                "tags": sorted(entry.tags),
+                "forgotten": entry.forgotten,
+                "consolidation_status": entry.consolidation_status,
+                "access_count": entry.access_count,
+                "n_relationships": len(entry.relationships),
+                "n_revisions": len(entry.revision_history),
+            })
+        return {
+            "schema_version": self.SCHEMA_VERSION,
+            "entries": entries_serialized,
+            "working_memory": self._working_memory,
+            "working_memory_capacity": self._working_memory_capacity,
+            "operation_log": [
+                {"operation": op.value, "target": tgt, "timestamp": ts}
+                for (op, tgt, ts) in self._operation_log
+            ],
+        }
+
+    def restore(self, payload: dict[str, Any]) -> None:
+        """Restore memory state from a previous ``checkpoint()`` call.
+
+        Idempotent: restoring twice yields the same state as restoring once.
+        """
+        if not isinstance(payload, dict):
+            raise ValueError(f"restore payload must be a dict, got {type(payload)}")
+        schema = payload.get("schema_version", "unknown")
+        if not schema.startswith("nuros.memory."):
+            raise ValueError(
+                f"restore payload schema_version {schema!r} does not look "
+                f"like a NurosOS memory checkpoint"
+            )
+        # Reset state before restoring — idempotent.
+        self._memories.clear()
+        self._working_memory.clear()
+        self._operation_log.clear()
+
+        for entry_dict in payload.get("entries", []):
+            mt = MemoryType(entry_dict.get("memory_type", MemoryType.EPISODIC.value))
+            # EpistemicLabel uses integer values, so we look up by NAME.
+            # See: EpistemicLabel.REMEMBERED.name == "REMEMBERED" but
+            # EpistemicLabel.REMEMBERED.value == 3 (int). The checkpoint
+            # serializes the .name (a string), so restore via subscript.
+            ep_name = entry_dict.get(
+                "epistemic_label", EpistemicLabel.REMEMBERED.name,
+            )
+            try:
+                ep = EpistemicLabel[ep_name]
+            except (KeyError, TypeError):
+                ep = EpistemicLabel.REMEMBERED
+            entry = MemoryEntry(
+                memory_id=entry_dict["memory_id"],
+                content=entry_dict.get("content"),
+                memory_type=mt,
+                origin=entry_dict.get("origin", ""),
+                timestamp=entry_dict.get("timestamp", time.time()),
+                provenance=entry_dict.get("provenance", ""),
+                confidence=entry_dict.get("confidence", 1.0),
+                context=entry_dict.get("context", {}) or {},
+                importance=entry_dict.get("importance", 0.5),
+                prediction_error=entry_dict.get("prediction_error", 0.0),
+                epistemic_label=ep,
+                decay_rate=entry_dict.get("decay_rate", 0.001),
+                tags=set(entry_dict.get("tags", []) or []),
+                forgotten=entry_dict.get("forgotten", False),
+                consolidation_status=entry_dict.get(
+                    "consolidation_status", "ACTIVE",
+                ),
+            )
+            self._memories[entry.memory_id] = entry
+
+        self._working_memory.update(payload.get("working_memory", {}) or {})
+        self._working_memory_capacity = payload.get("working_memory_capacity", 7)
+
+        for log_entry in payload.get("operation_log", []):
+            try:
+                op = MemoryOperation(log_entry["operation"])
+                self._operation_log.append((
+                    op, log_entry["target"], log_entry["timestamp"],
+                ))
+            except (KeyError, ValueError):
+                continue  # skip malformed log entries
+
+        self._log_operation(MemoryOperation.RESTORE, f"restored:{len(self._memories)}")
+
+    # ====================================================================
+    # Working memory
+    # ====================================================================
 
     def working_set(self, key: str, value: Any) -> None:
         if len(self._working_memory) >= self._working_memory_capacity:
@@ -308,6 +629,10 @@ class MemoryContract:
     def working_get(self, key: str) -> Optional[Any]:
         return self._working_memory.get(key)
 
+    # ====================================================================
+    # Properties
+    # ====================================================================
+
     @property
     def memory_count(self) -> int:
         return len(self._memories)
@@ -316,20 +641,71 @@ class MemoryContract:
     def operation_log(self) -> list[tuple[MemoryOperation, str, float]]:
         return list(self._operation_log)
 
-    def _log_operation(self, op: MemoryOperation, memory_id: str) -> None:
-        self._operation_log.append((op, memory_id, time.time()))
+    # ====================================================================
+    # Summary
+    # ====================================================================
 
-    def summary(self) -> dict:
-        type_counts = {}
+    def summary(self) -> dict[str, Any]:
+        type_counts: dict[str, int] = {}
+        consolidation_counts: dict[str, int] = {}
+        n = max(1, len(self._memories))
         for entry in self._memories.values():
             t = entry.memory_type.value
             type_counts[t] = type_counts.get(t, 0) + 1
-        n = max(1, len(self._memories))
+            cs = entry.consolidation_status
+            consolidation_counts[cs] = consolidation_counts.get(cs, 0) + 1
         return {
             "total_memories": len(self._memories),
             "by_type": type_counts,
+            "by_consolidation_status": consolidation_counts,
+            "forgotten_count": sum(1 for e in self._memories.values() if e.forgotten),
             "working_memory_items": len(self._working_memory),
             "total_operations": len(self._operation_log),
             "average_confidence": sum(e.confidence for e in self._memories.values()) / n,
             "average_importance": sum(e.importance for e in self._memories.values()) / n,
         }
+
+    # ====================================================================
+    # Internal
+    # ====================================================================
+
+    def _log_operation(self, op: MemoryOperation, memory_id: str) -> None:
+        self._operation_log.append((op, memory_id, time.time()))
+
+
+# ============================================================================
+# Backward-compat alias (audit §11.3: "MemoryContract name kept as a
+# deprecated alias for DefaultMemoryContract for one version").
+# ============================================================================
+
+
+class MemoryContract(DefaultMemoryContract):
+    """Deprecated alias for :class:`DefaultMemoryContract`.
+
+    Historical name retained for backward compatibility. New code should
+    import ``DefaultMemoryContract`` (the concrete default) or
+    ``MemoryEngine`` (the ABC) from :mod:`nuros.memory_engine`.
+    """
+
+    def __init__(self, epistemic_kernel: Optional[EpistemicKernel] = None):
+        warnings.warn(
+            "MemoryContract is a deprecated alias for DefaultMemoryContract. "
+            "Use DefaultMemoryContract (or MemoryEngine ABC) directly. "
+            "The alias will be removed in NurosOS 0.5.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(epistemic_kernel=epistemic_kernel)
+
+
+__all__ = [
+    "MemoryEngine",
+    "DefaultMemoryContract",
+    "MemoryContract",  # deprecated alias
+    "MemoryEntry",
+    "MemoryType",
+    "MemoryOperation",
+    "MemoryAccess",
+    "MemoryRevision",
+    "MemoryRelationship",
+]

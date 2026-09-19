@@ -3,7 +3,7 @@
 import unittest
 
 from nuros.epistemic import EpistemicKernel, EpistemicLabel, EpistemicRepresentation, EpistemicViolation
-from nuros.memory import MemoryContract, MemoryType
+from nuros.memory import DefaultMemoryContract, MemoryContract, MemoryType
 from nuros.self_model import SelfModel, SelfModelQuery
 from nuros.imagination import ImaginationEngine, RiskLevel
 from nuros.values import ValuesContract
@@ -59,7 +59,9 @@ class TestEpistemicKernel(unittest.TestCase):
 
 class TestMemoryContract(unittest.TestCase):
     def setUp(self):
-        self.memory = MemoryContract()
+        # PHASE 2: use DefaultMemoryContract directly to avoid the
+        # DeprecationWarning on the historical MemoryContract alias.
+        self.memory = DefaultMemoryContract()
 
     def test_remember_and_retrieve(self):
         self.memory.remember("first experience", importance=0.8)
@@ -81,8 +83,27 @@ class TestMemoryContract(unittest.TestCase):
         self.assertEqual(revised.content, "revised")
 
     def test_forget_is_auditable(self):
+        # PHASE 2 (audit Appendix B.1 fix): forget(hard=False) is now
+        # SOFT-delete — the entry stays in the store, marked forgotten.
+        # The historical hard-delete is preserved via forget(hard=True).
         entry = self.memory.remember("temp")
         result = self.memory.forget(entry.memory_id, justification="not needed")
+        self.assertTrue(result)
+        # Soft-delete: entry stays in store but is marked forgotten.
+        self.assertEqual(self.memory.memory_count, 1)
+        self.assertTrue(entry.forgotten)
+        self.assertEqual(entry.consolidation_status, "FORGOTTEN")
+        self.assertEqual(entry.importance, 0.0)
+        # Forgotten entries are invisible to retrieve() (soft-delete semantics).
+        self.assertEqual(len(self.memory.retrieve(query="temp")), 0)
+        self.assertEqual(len(self.memory.retrieve(query="temp", min_importance=0.0)), 0)
+        # But visible via iter_all() — the audit/provenance surface.
+        self.assertEqual(len(self.memory.iter_all()), 1)
+
+    def test_forget_hard_deletes_when_requested(self):
+        # PHASE 2: hard=True preserves the historical behavior.
+        entry = self.memory.remember("temp")
+        result = self.memory.forget(entry.memory_id, justification="hard delete", hard=True)
         self.assertTrue(result)
         self.assertEqual(self.memory.memory_count, 0)
 

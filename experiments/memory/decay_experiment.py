@@ -65,11 +65,11 @@ def run_decay_experiment(
         # Simulate ticks with decay
         strong_count = 0
         for tick in range(total_ticks):
-            for entry in memory._store.values():
+            for entry in memory.iter_all():
                 entry.access_count  # trigger strength recalculation
 
         # Count strong memories
-        strong_count = sum(1 for e in memory._store.values() if e.current_strength > 0.1)
+        strong_count = sum(1 for e in memory.iter_all() if e.current_strength > 0.1)
 
         elapsed = time.perf_counter() - start
         results[name] = DecayResult(

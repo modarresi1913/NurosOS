@@ -28,7 +28,12 @@ from enum import Enum
 from typing import Any, Optional
 
 from nuros.epistemic import EpistemicKernel
-from nuros.memory import MemoryContract, MemoryType
+from nuros.memory import (
+    DefaultMemoryContract,
+    MemoryContract,
+    MemoryType,
+)
+from nuros.memory_engine import MemoryEngine
 from nuros.self_model import SelfModel, SelfModelQuery
 from nuros.imagination import ImaginationEngine
 from nuros.values import ValuesContract
@@ -57,6 +62,15 @@ class OrganismConfig:
     environment: Optional[Environment] = None
     body_type: BodyType = BodyType.ABSTRACT
     seed: int = 42
+    # PHASE 2 fix (audit Appendix B.6): organisms/organism_0.py:46 passes
+    # `description=` to OrganismConfig — without this field, construction
+    # raises TypeError. Adding the field is the minimal, backward-compatible
+    # fix; the value is currently informational only.
+    description: str = ""
+    # PHASE 2 (audit §11.3 step 5): knob to select the MemoryEngine impl.
+    #   "default"  → DefaultMemoryContract (historical behaviour)
+    #   "hippocore" → HippoCoreMemory (PHASE 3+)
+    memory_engine: str = "default"
 
 
 class Organism:
@@ -80,7 +94,10 @@ class Organism:
 
         # Mind Contract Layer (MCL)
         self._epistemic = EpistemicKernel()
-        self._memory = MemoryContract(self._epistemic)
+        # PHASE 2 (audit §11.3 step 5): select the MemoryEngine impl based
+        # on the `memory_engine` config knob. Default is the historical
+        # DefaultMemoryContract behaviour (full backward compatibility).
+        self._memory = self._build_memory_engine(config)
         self._self_model = SelfModel(organism_id=self._organism_id)
         self._imagination = ImaginationEngine(self._epistemic)
         self._values = ValuesContract()
@@ -115,7 +132,7 @@ class Organism:
         return self._state
 
     @property
-    def memory(self) -> MemoryContract:
+    def memory(self) -> MemoryEngine:
         return self._memory
 
     @property
@@ -288,15 +305,71 @@ class Organism:
         return new_organism
 
     def state_hash(self) -> str:
-        """Compute a hash of the current state for reproducibility."""
+        """Compute a hash of the current state for reproducibility.
+
+        PHASE 2 fix (audit Appendix B.9): the historical state_hash
+        included only `memory_count`, so two organisms with identical
+        developmental state but different memory contents had the SAME
+        hash — a reproducibility hazard. We now include a hash of the
+        memory checkpoint payload so memory contents are covered.
+        """
+        try:
+            memory_payload = self._memory.checkpoint()
+            memory_content_hash = hashlib.sha256(
+                json.dumps(memory_payload, sort_keys=True, default=str).encode()
+            ).hexdigest()[:32]
+        except Exception:
+            # If the memory engine does not implement checkpoint (shouldn't
+            # happen post-PHASE 2), fall back to memory_count only.
+            memory_content_hash = f"count={self._memory.memory_count}"
         state_data = json.dumps({
             "organism_id": self._organism_id,
             "tick_count": self._tick_count,
             "developmental_stage": self._development.stage.value,
             "memory_count": self._memory.memory_count,
+            "memory_content_hash": memory_content_hash,
             "homeostasis": self._homeostasis.snapshot(),
         }, sort_keys=True, default=str)
         return hashlib.sha256(state_data.encode()).hexdigest()[:16]
+
+    @staticmethod
+    def _build_memory_engine(config: "OrganismConfig") -> "MemoryContract":
+        """Construct the MemoryEngine implementation selected by
+        ``config.memory_engine``.
+
+        PHASE 2: only "default" is supported. PHASE 3 will add "hippocore".
+        """
+        # Local import to avoid circular import (nuros.hippocore is
+        # not yet present in PHASE 2 — the import is wrapped in a try).
+        engine_name = (config.memory_engine or "default").lower().strip()
+        if engine_name == "default":
+            return DefaultMemoryContract(epistemic_kernel=None)
+        if engine_name == "hippocore":
+            try:
+                # PHASE 3 lands this module. For PHASE 2, the import will
+                # fail with ModuleNotFoundError, which we catch and fall
+                # back to default with a warning.
+                from nuros.hippocore.memory_engine import HippoCoreMemory
+                return HippoCoreMemory()
+            except ImportError as e:
+                import warnings
+                warnings.warn(
+                    f"memory_engine='hippocore' requested but nuros.hippocore "
+                    f"is not available yet ({e}). Falling back to default. "
+                    f"HippoCoreMemory lands in PHASE 3 of the HippoCore "
+                    f"integration roadmap.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+                return DefaultMemoryContract(epistemic_kernel=None)
+        # Unknown selector → default + warning.
+        import warnings
+        warnings.warn(
+            f"Unknown memory_engine={engine_name!r}; falling back to 'default'.",
+            UserWarning,
+            stacklevel=3,
+        )
+        return DefaultMemoryContract(epistemic_kernel=None)
 
     def snapshot(self) -> dict:
         """Full snapshot of the organism state."""
