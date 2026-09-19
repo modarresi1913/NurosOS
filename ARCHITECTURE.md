@@ -12,7 +12,7 @@ This is **Synthetic Development**: programming the conditions for mind developme
 
 ---
 
-## Layer Architecture (v0.3.0+)
+## Layer Architecture (v0.4.0+)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -57,6 +57,8 @@ This is **Synthetic Development**: programming the conditions for mind developme
 ```
 
 The **Developmental Substrate** layer (new in v0.3.0) sits above the Mind Contract Layer and provides the experimental infrastructure: genome, state, lifecycle, environments, organism, trajectory, checkpoint, replay, diff, causality, telemetry, and manifest. It is implemented in Rust (`nuros-dev` crate) and exposed to Python via PyO3 (`nuros._dev` module).
+
+The **HippoCore Integration** layer (new in v0.4.0-alpha, see `docs/HIPPOCORE_INTEGRATION.md` and `docs/HIPPOCORE_INTEGRATION_AUDIT.md`) sits above the Mind Contract Layer and provides the episodic memory engine: `MemoryEngine` ABC + `HippoCoreMemory` impl with episodic encoding, structured provenance (`MemoryProvenance`), 5 replay policies, fast→slow consolidation pipeline, memory event emission for the developmental trajectory, and Python-side causal graph integration (`PythonCausalGraph`). It is implemented in pure Python (`nuros/hippocore/` package + `nuros/memory_engine.py` + `nuros/memory_provenance.py` + `nuros/memory_events.py` + `nuros/causal_graph.py`) — NO LLM dependency.
 
 ---
 

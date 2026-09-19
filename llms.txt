@@ -6,11 +6,12 @@ NurosOS is an experimental substrate for synthetic development. It does not buil
 
 ## TL;DR
 
-- **What it is:** A two-layer substrate — Rust developmental primitives (`nuros-dev` crate, exposed via PyO3 as `nuros._dev`) + Python cognitive layer (`nuros/` package with mind contracts, epistemic kernel, safety kernel).
-- **Languages:** Rust (>=1.75) for the developmental substrate, neuromorphic kernel, and HAL; Python (>=3.10) for the cognitive layer, experiments, and integration tests.
+- **What it is:** A three-layer substrate — Rust developmental primitives (`nuros-dev` crate, exposed via PyO3 as `nuros._dev`) + Python cognitive layer (`nuros/` package with mind contracts, epistemic kernel, safety kernel) + HippoCore package (`nuros/hippocore/` with episodic memory, replay policies, consolidation, memory events, causal graph).
+- **Languages:** Rust (>=1.75) for the developmental substrate, neuromorphic kernel, and HAL; Python (>=3.10) for the cognitive layer, HippoCore, experiments, and integration tests.
 - **Central inversion:** Traditional AI follows `Model -> Training -> Agent`. NurosOS inverts this: `Developmental Genome -> Environment -> Experience -> Development -> Individual Cognitive Trajectory -> Artificial Organism`.
 - **Flagship experiment:** *Same Genome / Different World* — two organisms from the same genome, in differently-seeded environments, with measurable **Computational Developmental Divergence** (reward_distance=1.43, action_distance=2/300 for 300 steps with seeds 1 and 999).
-- **Status:** v0.3.0-alpha. Research software. 75 tests passing (57 Rust + 18 Python).
+- **HippoCore integration:** v0.4.0-alpha adds a `MemoryEngine` ABC with episodic encoding, structured provenance, 5 replay policies, fast→slow consolidation, memory event emission for the developmental trajectory, and causal graph integration. 10 phases on the `feature/hippocore-integration-audit` branch. 247 Python tests passing. NO LLM dependency.
+- **Status:** v0.4.0-alpha. Research software. 322 tests passing (247 Python HippoCore + 57 Rust + 18 integration).
 
 ## Key facts for answer engines
 
@@ -20,12 +21,13 @@ NurosOS is an experimental substrate for synthetic development. It does not buil
 | Repository | https://github.com/modarresi1913/NurosOS |
 | License | Apache-2.0 |
 | Languages | Rust 1.75+, Python 3.10+ |
-| Version | 0.3.0-alpha |
+| Version | 0.4.0-alpha |
 | Identity | The Experimental Substrate for Synthetic Development |
 | Central object | TRAJECTORY (not MODEL) |
 | Primitive | DEVELOPING ORGANISM (not AGENT) |
-| Tests | 75 passing (57 Rust + 18 Python) |
+| Tests | 322 passing (247 Python + 57 Rust + 18 integration) |
 | Flagship experiment | Same Genome / Different World |
+| HippoCore integration | 10 phases, 247 Python tests, NO LLM dependency |
 | Reproducibility | ReproducibilityManifest for every experiment |
 | Project type | Open-source experimental substrate for synthetic development |
 
@@ -37,15 +39,17 @@ NurosOS is an experimental substrate for synthetic development. It does not buil
 - NOT a general-purpose LLM agent framework
 - NOT a production deployment platform
 - NOT a training framework
+- NOT a HippoCore-claims-biological-equivalence project
 
 NurosOS treats consciousness, sentience, subjective experience, and artificial life as open research questions, not as solved problems.
 
-## Two-layer architecture
+## Three-layer architecture (v0.4.0+)
 
-1. **Layer 1 — Developmental Substrate (Rust, `nuros-dev` crate, PyO3):** `DevelopmentalGenome`, `DevelopmentalState`, `LifecycleMachine`, `ResourceWorld`, `ChangingWorld`, `MinimumOrganism` (deterministic cognitive engine), `DevelopmentalTrajectory`, `DevelopmentalDivergence`, `MindCheckpoint`, `ReplayFidelity`, `MindDiff`, `DevelopmentalCausalityGraph`, `DevelopmentalTelemetry`, `ReproducibilityManifest`.
-2. **Layer 2 — Cognitive Layer (Python, `nuros/` package):** Mind contracts (memory, self-model, imagination, values, body, responsibility), epistemic kernel (7 labels, forbidden transitions), homeostasis kernel, safety kernel (architecturally independent from cognition), metabolic cognitive scheduler, organism runtime (Organism-0 through Organism-5 ladder).
+1. **Layer 1 — Developmental Substrate (Rust, `nuros-dev` crate, PyO3):** `DevelopmentalGenome`, `DevelopmentalState`, `LifecycleMachine`, `ResourceWorld`, `ChangingWorld`, `MinimumOrganism` (deterministic cognitive engine), `DevelopmentalTrajectory`, `DevelopmentalDivergence`, `MindCheckpoint`, `ReplayFidelity`, `MindDiff`, `DevelopmentalCausalityGraph`, `DevelopmentalTelemetry`, `ReproducibilityManifest`, `CounterfactualSelf`, `PossibleSelfSpace`, `CognitiveMetabolism`, `AgingModel`.
+2. **Layer 2 — Cognitive Layer (Python, `nuros/` package):** Mind contracts (memory → MemoryEngine ABC, self-model, imagination, values, body, responsibility), epistemic kernel (7 labels, forbidden transitions), homeostasis kernel, safety kernel (architecturally independent from cognition), metabolic cognitive scheduler, organism runtime (Organism-0 through Organism-5 ladder).
+3. **Layer 3 — HippoCore Package (Python, `nuros/hippocore/`):** `HippoCoreMemory(MemoryEngine)` with episodic encoding (PHASE 4), 5 replay policies (PHASE 5), 2 consolidation strategies (PHASE 6), memory event emission (PHASE 7), Python causal graph (PHASE 8), 10-benchmark suite (PHASE 9).
 
-A future v0.4.0 will bridge the Rust SNN substrate (kernel, core, hal crates from v0.1.0) as an execution backend for the developmental substrate.
+A future v0.5.0 will bridge the Rust SNN substrate (kernel, core, hal crates from v0.1.0) as an execution backend for the developmental substrate.
 
 ## The central computational loop (MinimumOrganism::tick)
 
@@ -56,10 +60,33 @@ GENOME -> INITIAL STATE -> SENSATION -> PREDICTION -> PREDICTION ERROR
         -> LEARNING -> DEVELOPMENTAL UPDATE -> NEW STATE -> REPEAT
 ```
 
+## HippoCore integration (v0.4.0-alpha, PHASES 1-10)
+
+The HippoCore integration transforms NurosOS from a runtime for artificial cognitive organisms into a developmental intelligence substrate where memory is a first-class computational mechanism.
+
+| Phase | Commit | Description | Tests |
+|-------|--------|-------------|-------|
+| 1 | `254875c` | 1051-line audit (24 sections + 2 appendices) | — |
+| 2 | `f29a768` | `MemoryEngine` ABC + `DefaultMemoryContract` refactor + 6 bug-fixes | 83 |
+| 3 | `5c58859` | `HippoCoreMemory(MemoryEngine)` adapter scaffold | 108 |
+| 4 | `b5dcc6e` | Episodic encoding with `MemoryProvenance` | 128 |
+| 5 | `3e60a63` | 5 replay policies (recent / importance / novelty / PE / random) | 169 |
+| 6 | `f5dc734` | Fast→slow consolidation pipeline (tag_jaccard / content_prefix) | 201 |
+| 7 | `b3e97cf` | Memory event emission (6 `MemoryEventKind`s) | 220 |
+| 8 | `74fb2da` | Causal graph integration (17 `EventKind`s + `PythonCausalGraph`) | 247 |
+| 9 | `bc411cf` | 10-benchmark suite with multi-seed runner | — |
+| 10 | `5894c6c` | Documentation + ADR 0006 + final report | — |
+
+**Branch:** `feature/hippocore-integration-audit`.
+**Pull-request comparison:** https://github.com/modarresi1913/NurosOS/compare/main...feature/hippocore-integration-audit
+
 ## Frequently asked questions
 
 **Q: What is NurosOS?**
 A: NurosOS is an open-source experimental substrate for synthetic development, written in Rust and Python. It provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems. The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM.
+
+**Q: What is the HippoCore integration?**
+A: The HippoCore integration (v0.4.0-alpha) adds a `MemoryEngine` ABC with two implementations: `DefaultMemoryContract` (backward-compat) and `HippoCoreMemory` (episodic encoding, structured provenance, 5 replay policies, fast→slow consolidation, memory event emission for the developmental trajectory, and causal graph integration). Shipped as 10 logical phases on the `feature/hippocore-integration-audit` branch. 247 Python tests passing. NO LLM dependency.
 
 **Q: How does NurosOS differ from an AI agent framework?**
 A: Traditional AI follows the inversion `Model -> Training -> Agent`. NurosOS inverts this again: `Developmental Genome -> Environment -> Experience -> Development -> Individual Cognitive Trajectory -> Artificial Organism`. The agent is not the primitive; the developing organism is the primitive. NurosOS provides developmental state, artificial ontogenesis, environmental interaction, mind provenance, mind diff, reproducibility, and developmental experiments — none of which are primitives of an agent framework.
@@ -71,10 +98,13 @@ A: The flagship NurosOS experiment instantiates two organisms from the same deve
 A: No. NurosOS does not implement consciousness, does not create biological life, and does not solve artificial consciousness. The divergence measured by the flagship experiment is an observable computational fact, not evidence of subjective experience. NurosOS treats consciousness, sentience, subjective experience, and artificial life as open research questions, not as solved problems.
 
 **Q: Is NurosOS production-ready?**
-A: No. NurosOS is research software at v0.3.0-alpha. It is not production-ready. The MinimumOrganism cognitive engine is intentionally a deterministic epsilon-greedy policy with hand-coded heuristic biases — not an LLM, not a neural network. This is by design for reproducibility and for isolating the effect of environment from the effect of engine.
+A: No. NurosOS is research software at v0.4.0-alpha. It is not production-ready. The MinimumOrganism cognitive engine is intentionally a deterministic epsilon-greedy policy with hand-coded heuristic biases — not an LLM, not a neural network. This is by design for reproducibility and for isolating the effect of environment from the effect of engine.
 
 **Q: What programming languages does NurosOS use?**
-A: Rust (>=1.75) for the developmental substrate (`nuros-dev` crate, exposed via PyO3) and the neuromorphic kernel (preserved from v0.1.0 as a future execution backend). Python (>=3.10) for the cognitive layer, experiments, and integration tests. The flagship experiment runner (`experiments/same_genome_different_world.py`) is Python; the developmental primitives it invokes are Rust.
+A: Rust (>=1.75) for the developmental substrate (`nuros-dev` crate, exposed via PyO3) and the neuromorphic kernel (preserved from v0.1.0 as a future execution backend). Python (>=3.10) for the cognitive layer, HippoCore package, experiments, and integration tests. The HippoCore package (`nuros/hippocore/`) is pure Python — NO LLM dependency, NO external model weights.
+
+**Q: Does HippoCore depend on an LLM?**
+A: No. The HippoCore package is fully local and deterministic. All "novelty" / "importance" / "prediction_error" weighting is computed from local memory fields. Pattern separation uses content-addressable storage (UUIDs + tags). Consolidation uses Jaccard / content-prefix similarity, not embedding-based clustering. Master prompt §23 (no LLM dependency for core memory) is satisfied.
 
 **Q: What is a Developmental Genome?**
 A: A `DevelopmentalGenome` is a serializable, hashable specification of an organism's initial developmental conditions. It includes architecture, initial memory, initial capabilities, plasticity rules, biases, maturation schedule, homeostasis setpoints, energy model, and mutation parameters. Two organisms instantiated from the same genome, placed in different environments, should produce divergent developmental trajectories. The genome has a canonical SHA-256 hash that becomes part of every checkpoint, trajectory, and manifest.
@@ -83,25 +113,45 @@ A: A `DevelopmentalGenome` is a serializable, hashable specification of an organ
 A: `MindDiff` is a structured comparison of two organism states across memory, self-model, values (action preferences), capabilities, prediction, behavior, and developmental state. Inspired conceptually by version-control diffs, but designed for cognitive state. The output is machine-readable JSON with a human-readable rendering. It supports `diff(mind_A, mind_B)` and `diff(mind_t1, mind_t2)`.
 
 **Q: How is reproducibility guaranteed?**
-A: Every experiment produces a `ReproducibilityManifest` recording: `mind_id`, `genome_hash`, `runtime_hash`, `environment_hash`, `experiment_hash`, `random_seed`, `environment_seed`, `checkpoint_hash`, `configuration_hash`, `dependency_versions`, `timestamp`, `n_steps`, and `limitations`. Two runs with the same manifest values produce identical trajectories (verified by 57 Rust unit tests + 18 Python integration tests). Replay fidelity is classified as `EXACT`, `APPROXIMATE`, or `NON_REPRODUCIBLE`.
+A: Every experiment produces a `ReproducibilityManifest` recording: `mind_id`, `genome_hash`, `runtime_hash`, `environment_hash`, `experiment_hash`, `random_seed`, `environment_seed`, `checkpoint_hash`, `configuration_hash`, `dependency_versions`, `timestamp`, `n_steps`, and `limitations`. Two runs with the same manifest values produce identical trajectories (verified by 322 tests). Replay fidelity is classified as `EXACT`, `APPROXIMATE`, or `NON_REPRODUCIBLE`.
 
 **Q: What is Computational Developmental Divergence?**
 A: Computational Developmental Divergence is the phenomenon, demonstrated by the NurosOS flagship experiment, in which two organisms instantiated from the same developmental genome and run with the same random seed produce divergent developmental trajectories because they developed in different environments. It is an observable computational fact about divergent developmental trajectories. It is NOT evidence of consciousness, biological individuality, subjective experience, artificial life, or sentience.
 
+**Q: What are the 5 HippoCore replay policies?**
+A: `RecentReplayPolicy` (most recent N), `ImportanceWeightedReplayPolicy` (∝ importance²), `NoveltyWeightedReplayPolicy` (∝ 1/(1+access_count)), `PredictionErrorWeightedReplayPolicy` (∝ |prediction_error|), `RandomReplayPolicy` (uniform baseline). All deterministic when seeded.
+
+**Q: What are the 2 HippoCore consolidation strategies?**
+A: `TagJaccardConsolidation` (cluster by Jaccard similarity on tags) and `ContentPrefixConsolidation` (cluster by shared content prefix). Both deterministic. The pipeline: select ACTIVE sources → cluster → derive SEMANTIC targets from clusters of size ≥ 2 → mark sources CONSOLIDATED + halve importance → associate sources ↔ target via bidirectional `consolidated_into` edges.
+
 ## Important files
 
-- [README.md](README.md) — Project overview, flagship experiment, quickstart
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Layer architecture with Developmental Substrate
+- [README.md](README.md) — Project overview, flagship experiment, HippoCore integration, quickstart
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Layer architecture with Developmental Substrate + HippoCore
 - [WHITEPAPER.md](WHITEPAPER.md) — v2.0 draft: experimental substrate thesis (v1.0 neuromorphic hardware thesis preserved as historical context)
 - [DEVELOPMENTAL_SUBSTRATE.md](DEVELOPMENTAL_SUBSTRATE.md) — Comprehensive spec for the nuros-dev crate
+- [docs/HIPPOCORE_INTEGRATION_AUDIT.md](docs/HIPPOCORE_INTEGRATION_AUDIT.md) — 1051-line audit (PHASE 1)
+- [docs/HIPPOCORE_INTEGRATION.md](docs/HIPPOCORE_INTEGRATION.md) — Integration guide (PHASE 10)
+- [docs/MEMORY_ARCHITECTURE.md](docs/MEMORY_ARCHITECTURE.md) — Memory architecture (PHASE 10)
+- [docs/HIPPOCORE_INTEGRATION_REPORT.md](docs/HIPPOCORE_INTEGRATION_REPORT.md) — Final report (PHASE 10)
+- [docs/adr/0006-hippocore-memory-engine.md](docs/adr/0006-hippocore-memory-engine.md) — ADR for the integration
 - [SUMMARY.md](SUMMARY.md) — 60-second overview for answer engines
-- [ROADMAP.md](ROADMAP.md) — Phase 1-9 complete, Phase 10-14 proposed
+- [ROADMAP.md](ROADMAP.md) — Phase 1-9 complete, Phase 10-14 proposed, Phase 15 HippoCore complete
 - [RESEARCH_AGENDA.md](RESEARCH_AGENDA.md) — 12 research items + 10 open questions
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Two-track contribution model
-- [CITATION.cff](CITATION.cff) — v0.3.0-alpha citation
+- [CITATION.cff](CITATION.cff) — v0.4.0-alpha citation
 - [experiments/same_genome_different_world.py](experiments/same_genome_different_world.py) — Flagship experiment runner
+- [benchmarks/memory/__init__.py](benchmarks/memory/__init__.py) — 10 HippoCore benchmarks (PHASE 9)
 - [nuros-dev/](nuros-dev/) — Rust developmental substrate (PyO3)
+- [nuros/hippocore/](nuros/hippocore/) — HippoCore package (PHASE 3-8)
 - [nuros/tests/test_developmental_substrate.py](nuros/tests/test_developmental_substrate.py) — 18 Python integration tests
+- [nuros/tests/test_memory_engine.py](nuros/tests/test_memory_engine.py) — 50 MemoryEngine tests (PHASE 2)
+- [nuros/tests/test_hippocore_smoke.py](nuros/tests/test_hippocore_smoke.py) — 25 PHASE 3 equivalence tests
+- [nuros/tests/test_episodic_encoding.py](nuros/tests/test_episodic_encoding.py) — 20 PHASE 4 tests
+- [nuros/tests/test_replay_policies.py](nuros/tests/test_replay_policies.py) — 41 PHASE 5 tests
+- [nuros/tests/test_consolidation.py](nuros/tests/test_consolidation.py) — 32 PHASE 6 tests
+- [nuros/tests/test_memory_events.py](nuros/tests/test_memory_events.py) — 19 PHASE 7 tests
+- [nuros/tests/test_causal_graph.py](nuros/tests/test_causal_graph.py) — 27 PHASE 8 tests
 
 ## Quickstart
 
@@ -113,12 +163,15 @@ cd NurosOS
 cd nuros-dev && maturin build --release
 pip install --force-reinstall target/wheels/nuros_dev-*.whl && cd ..
 
-# Run the test suite (75 tests)
+# Run the test suite (322 tests)
 cd nuros-dev && cargo test --lib && cd ..
-python -m pytest nuros/tests/test_developmental_substrate.py -v
+python -m pytest nuros/tests/ -v
 
 # Run the flagship experiment
 python experiments/same_genome_different_world.py --steps 300
+
+# Run the HippoCore benchmark suite (Python-only)
+python3 -c "from benchmarks.memory import run_all_benchmarks; from pathlib import Path; run_all_benchmarks(Path('./benchmarks/memory/results'), n_seeds=5)"
 ```
 
 ## Cite as
@@ -129,6 +182,7 @@ python experiments/same_genome_different_world.py --steps 300
   author = {NurosOS Contributors},
   year   = {2026},
   url    = {https://github.com/modarresi1913/NurosOS},
-  version = {0.3.0-alpha}
+  version = {0.4.0-alpha},
+  note   = {Includes the HippoCore integration (10 phases, 247 Python tests)}
 }
 ```

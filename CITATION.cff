@@ -18,6 +18,14 @@ abstract: >
   computational conditions producing divergent developmental states
   under different environmental histories. This is an observable
   computational fact, not evidence of consciousness.
+
+  v0.4.0-alpha adds the HippoCore integration (10 phases): a
+  MemoryEngine ABC with two implementations (DefaultMemoryContract
+  for backward compatibility, HippoCoreMemory for episodic
+  encoding, structured provenance, 5 replay policies, fast-to-slow
+  consolidation, memory event emission for the developmental
+  trajectory, and causal graph integration). 247 Python tests
+  passing. NO LLM dependency.
 keywords:
   - artificial-development
   - synthetic-development
@@ -35,9 +43,17 @@ keywords:
   - rust
   - python
   - pyo3
+  - hippocore
+  - memory-engine
+  - episodic-memory
+  - replay-policy
+  - consolidation
+  - memory-provenance
+  - causal-graph
+  - no-llm-dependency
 license: Apache-2.0
-version: 0.3.0-alpha
-date-released: "2026-09-16"
+version: 0.4.0-alpha
+date-released: "2026-09-19"
 preferred-citation:
   type: software
   title: "NurosOS: The Experimental Substrate for Synthetic Development"
@@ -45,4 +61,4 @@ preferred-citation:
     - name: "NurosOS Contributors"
   year: 2026
   url: "https://github.com/modarresi1913/NurosOS"
-  version: "0.3.0-alpha"
+  version: "0.4.0-alpha"

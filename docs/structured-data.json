@@ -12,13 +12,13 @@
     {
       "@type": "SoftwareApplication",
       "name": "NurosOS",
-      "description": "An open-source experimental substrate for synthetic development, written in Rust and Python. Provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems. The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM.",
+      "description": "An open-source experimental substrate for synthetic development, written in Rust and Python. Provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems. Includes the HippoCore integration (v0.4.0-alpha): a MemoryEngine ABC with episodic memory, replay policies, fast-to-slow consolidation, memory event emission, and causal graph integration. The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM.",
       "url": "https://github.com/modarresi1913/NurosOS",
       "applicationCategory": "ScienceApplication",
       "applicationSubCategory": "Artificial Development",
       "operatingSystem": "Cross-platform (Linux, macOS, Windows)",
       "programmingLanguage": ["Rust", "Python"],
-      "softwareVersion": "0.3.0-alpha",
+      "softwareVersion": "0.4.0-alpha",
       "license": "https://www.apache.org/licenses/LICENSE-2.0",
       "isAccessibleForFree": true,
       "keywords": [
@@ -40,7 +40,15 @@
         "PyO3 bindings",
         "epistemic kernel",
         "mind contracts",
-        "safety kernel"
+        "safety kernel",
+        "HippoCore",
+        "MemoryEngine",
+        "episodic memory",
+        "replay policy",
+        "consolidation pipeline",
+        "MemoryProvenance",
+        "PythonCausalGraph",
+        "no LLM dependency"
       ],
       "author": {
         "@type": "Organization",
@@ -125,7 +133,31 @@
           "name": "How is reproducibility guaranteed?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Every experiment produces a ReproducibilityManifest recording: mind_id, genome_hash, runtime_hash, environment_hash, experiment_hash, random_seed, environment_seed, checkpoint_hash, configuration_hash, dependency_versions, timestamp, n_steps, and limitations. Two runs with the same manifest values produce identical trajectories (verified by 57 Rust unit tests + 18 Python integration tests). Replay fidelity is classified as EXACT, APPROXIMATE, or NON_REPRODUCIBLE."
+            "text": "Every experiment produces a ReproducibilityManifest recording: mind_id, genome_hash, runtime_hash, environment_hash, experiment_hash, random_seed, environment_seed, checkpoint_hash, configuration_hash, dependency_versions, timestamp, n_steps, and limitations. Two runs with the same manifest values produce identical trajectories (verified by 322 tests: 247 Python HippoCore + 57 Rust + 18 integration). Replay fidelity is classified as EXACT, APPROXIMATE, or NON_REPRODUCIBLE."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the HippoCore integration?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The HippoCore integration (v0.4.0-alpha, PHASES 1-10) adds a MemoryEngine ABC with two implementations: DefaultMemoryContract (backward-compat) and HippoCoreMemory (episodic encoding, structured provenance, 5 replay policies, fast-to-slow consolidation, memory event emission for the developmental trajectory, and causal graph integration). Shipped as 10 logical phases on the feature/hippocore-integration-audit branch. 247 Python tests passing. NO LLM dependency."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does HippoCore depend on an LLM?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The HippoCore package is fully local and deterministic. All novelty / importance / prediction_error weighting is computed from local memory fields. Pattern separation uses content-addressable storage (UUIDs + tags). Consolidation uses Jaccard / content-prefix similarity, not embedding-based clustering. The no-LLM-dependency invariant is satisfied (master prompt section 23)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are the 5 HippoCore replay policies?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "RecentReplayPolicy (most recent N), ImportanceWeightedReplayPolicy (proportional to importance squared), NoveltyWeightedReplayPolicy (proportional to 1/(1+access_count) - less-accessed is more novel), PredictionErrorWeightedReplayPolicy (proportional to absolute prediction_error - the surprise signal), RandomReplayPolicy (uniform baseline). All deterministic when seeded."
           }
         }
       ]

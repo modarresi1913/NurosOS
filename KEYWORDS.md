@@ -6,9 +6,9 @@
 
 ## Repository Description (GitHub "About" field)
 
-> **EN (350 chars max):** NurosOS is an open-source experimental substrate for synthetic development (Rust + Python). Instantiate, develop, observe, fork, replay, and compare artificial organisms. Flagship: Same Genome / Different World experiment. Apache-2.0.
+> **EN (350 chars max):** NurosOS is an open-source experimental substrate for synthetic development (Rust + Python) with the HippoCore integration (episodic memory, replay, consolidation). Instantiate, develop, observe, fork, replay, and compare artificial organisms. Apache-2.0.
 
-> **FA (فارسی):** NurosOS یک بستر آزمایشگاهی متن‌باز برای توسعه‌ی مصنوعی (Synthetic Development) است که با Rust و Python نوشته شده. موجودات مصنوعی را instantiate، develop، observe، fork، replay و compare می‌کند. آزمایش پرچمدار: Same Genome / Different World.
+> **FA (فارسی):** NurosOS یک بستر آزمایشگاهی متن‌باز برای توسعه‌ی مصنوعی (Synthetic Development) با ادغام HippoCore (حافظه‌ی اپیزودی، بازپخش، تلفیق) است که با Rust و Python نوشته شده. موجودات مصنوعی را instantiate، develop، observe، fork، replay و compare می‌کند.
 
 ---
 
@@ -24,6 +24,8 @@
 8. `Reproducible artificial cognitive trajectories.`
 9. `Developmental Genome + Environment + Experience = Trajectory.`
 10. `Open substrate for synthetic development research.`
+11. `HippoCore: episodic memory + replay + consolidation.`
+12. `Memory is not storage; it is part of development.`
 
 ---
 
@@ -171,6 +173,46 @@ plasticity stability tradeoff
 critical periods
 ```
 
+### Cluster 9b — HippoCore Integration (Phase 15, v0.4.0-alpha)
+
+```
+HippoCore
+MemoryEngine
+DefaultMemoryContract
+HippoCoreMemory
+MemoryProvenance
+episodic encoding
+episodic memory
+structured provenance
+pattern separation
+replay policy
+RecentReplayPolicy
+ImportanceWeightedReplayPolicy
+NoveltyWeightedReplayPolicy
+PredictionErrorWeightedReplayPolicy
+RandomReplayPolicy
+consolidation pipeline
+fast slow consolidation
+TagJaccardConsolidation
+ContentPrefixConsolidation
+memory events
+MemoryEventKind
+MEMORY_ENCODED
+MEMORY_RETRIEVED
+MEMORY_REPLAYED
+MEMORY_RECONSOLIDATED
+MEMORY_CONSOLIDATED
+MEMORY_FORGOTTEN
+causal graph
+PythonCausalGraph
+trace_outcome_to_experience
+checkpoint restore
+soft delete
+hard delete
+NO LLM dependency
+deterministic when seeded
+```
+
 ### Cluster 10 — Scientific Context
 
 ```
@@ -242,6 +284,8 @@ NurosOS آگاهی را پیاده‌سازی نمی‌کند، حیات بیو�
 #SameGenomeDifferentWorld #PyO3 #Rust #Python #EpistemicKernel
 #MindContracts #SafetyKernel #OpenSource #ResearchSoftware
 #DevelopmentalTrajectory #DevelopingOrganism #ExperimentalSubstrate
+#HippoCore #MemoryEngine #EpisodicMemory #ReplayPolicy #Consolidation
+#MemoryProvenance #CausalGraph #NoLLMDependency
 ```
 
 ---
@@ -250,17 +294,17 @@ NurosOS آگاهی را پیاده‌سازی نمی‌کند، حیات بیو�
 
 ```html
 <title>NurosOS — The Experimental Substrate for Synthetic Development</title>
-<meta name="description" content="Open-source Rust + Python experimental substrate for synthetic development. Instantiate, develop, observe, fork, replay, and compare artificial organisms. Flagship: Same Genome / Different World experiment demonstrating Computational Developmental Divergence.">
-<meta name="keywords" content="synthetic development, artificial development, developmental substrate, developmental trajectory, computational developmental divergence, developmental genome, mind checkpoint, mind diff, reproducibility manifest, causality graph, artificial ontogenesis, cognitive systems, synthetic minds, deterministic cognitive engine, Same Genome Different World, PyO3, Rust, Python, epistemic kernel, mind contracts, safety kernel, experimental substrate">
+<meta name="description" content="Open-source Rust + Python experimental substrate for synthetic development with the HippoCore integration (episodic memory, replay, consolidation, causal graph). Instantiate, develop, observe, fork, replay, and compare artificial organisms. Demonstrates Computational Developmental Divergence in the Same Genome / Different World experiment.">
+<meta name="keywords" content="synthetic development, artificial development, developmental substrate, developmental trajectory, computational developmental divergence, developmental genome, mind checkpoint, mind diff, reproducibility manifest, causality graph, artificial ontogenesis, cognitive systems, synthetic minds, deterministic cognitive engine, Same Genome Different World, PyO3, Rust, Python, epistemic kernel, mind contracts, safety kernel, experimental substrate, HippoCore, MemoryEngine, episodic memory, replay policy, consolidation pipeline, MemoryProvenance, PythonCausalGraph, no LLM dependency">
 <meta name="author" content="NurosOS Contributors">
 <meta name="robots" content="index, follow">
 <meta property="og:title" content="NurosOS — The Experimental Substrate for Synthetic Development">
-<meta property="og:description" content="Instantiate. Develop. Observe. Fork. Replay. Compare. Open-source Rust + Python substrate for synthetic development. Demonstrates Computational Developmental Divergence in the Same Genome / Different World experiment.">
+<meta property="og:description" content="Instantiate. Develop. Observe. Fork. Replay. Compare. Open-source Rust + Python substrate for synthetic development with the HippoCore integration. Demonstrates Computational Developmental Divergence in the Same Genome / Different World experiment.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://github.com/modarresi1913/NurosOS">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="NurosOS — Experimental Substrate for Synthetic Development">
-<meta name="twitter:description" content="Don't train a mind. Instantiate its developmental conditions. Rust + Python. 75 tests passing. Flagship: Same Genome / Different World.">
+<meta name="twitter:description" content="Don't train a mind. Instantiate its developmental conditions. Rust + Python + HippoCore. 322 tests passing. Flagship: Same Genome / Different World.">
 ```
 
 ---
@@ -279,7 +323,7 @@ The following terms appear with high density across the repository's documentati
 | mind diff | medium | nuros-dev/src/diff.rs, README, llms.txt |
 | mind checkpoint | medium | nuros-dev/src/checkpoint.rs, DEVELOPMENTAL_SUBSTRATE |
 | reproducibility manifest | medium | nuros-dev/src/telemetry.rs, WHITEPAPER |
-| causality graph | medium | nuros-dev/src/causality.rs, DEVELOPMENTAL_SUBSTRATE |
+| causality graph | medium | nuros-dev/src/causality.rs, nuros/causal_graph.py, DEVELOPMENTAL_SUBSTRATE |
 | artificial ontogenesis | medium | ROADMAP, RESEARCH_AGENDA, WHITEPAPER |
 | Same Genome Different World | high | README, WHITEPAPER, experiments/, llms.txt |
 | developing organism | high | WHITEPAPER, RESEARCH_AGENDA, llms.txt |
@@ -287,6 +331,16 @@ The following terms appear with high density across the repository's documentati
 | epistemic kernel | medium | nuros/epistemic.py, ARCHITECTURE |
 | mind contracts | medium | nuros/, ARCHITECTURE |
 | safety kernel | medium | nuros/safety.py, ARCHITECTURE |
+| HippoCore | high | README, docs/HIPPOCORE_*, nuros/hippocore/, SUMMARY, llms.txt |
+| MemoryEngine | high | nuros/memory_engine.py, nuros/memory.py, docs/MEMORY_ARCHITECTURE.md |
+| episodic memory | high | nuros/hippocore/memory_engine.py, docs/DEVELOPMENTAL_MEMORY.md |
+| replay policy | high | nuros/hippocore/replay_policy.py, docs/MEMORY_ARCHITECTURE.md |
+| consolidation pipeline | high | nuros/hippocore/consolidation.py, docs/MEMORY_ARCHITECTURE.md |
+| MemoryProvenance | medium | nuros/memory_provenance.py, docs/MEMORY_ARCHITECTURE.md |
+| no LLM dependency | high | docs/HIPPOCORE_INTEGRATION.md, README, llms.txt |
+| developmental memory | medium | docs/DEVELOPMENTAL_MEMORY.md, SUMMARY |
+| memory event | medium | nuros/memory_events.py, nuros/hippocore/memory_engine.py |
+| causal graph Python | medium | nuros/causal_graph.py, docs/MEMORY_ARCHITECTURE.md |
 
 ---
 
@@ -314,6 +368,14 @@ The following terms appear with high density across the repository's documentati
 هسته‌ی معرفتی
 هسته‌ی ایمنی
 زیرساخت تکرارپذیر
+ادغام HippoCore
+موتور حافظه
+حافظه‌ی اپیزودی
+خط‌مشی بازپخش
+خط لوله‌ی تلفیق
+خاستگاه حافظه
+گراف علّی پایتون
+بدون وابستگی به LLM
 ```
 
 ### 中文 (Chinese, planned for v0.4.0 docs)
@@ -336,6 +398,14 @@ PyO3 绑定
 心智契约
 认知内核
 安全内核
+HippoCore 集成
+记忆引擎
+情景记忆
+重放策略
+巩固管道
+记忆溯源
+Python 因果图
+无 LLM 依赖
 ```
 
 ---
