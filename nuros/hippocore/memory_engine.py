@@ -46,6 +46,12 @@ from nuros.hippocore.consolidation import (
     TagJaccardConsolidation,
     make_strategy,
 )
+from nuros.memory_events import (
+    MemoryEvent,
+    MemoryEventCallback,
+    MemoryEventEmitter,
+    MemoryEventKind,
+)
 
 
 class HippoCoreMemoryConfig:
@@ -120,7 +126,7 @@ class HippoCoreMemory(MemoryEngine):
     no caller breaks.
     """
 
-    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase6"
+    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase7"
 
     def __init__(
         self,
@@ -130,37 +136,40 @@ class HippoCoreMemory(MemoryEngine):
         environment_hash: Optional[str] = None,
         replay_policy: Optional[ReplayPolicy] = None,
         consolidation_strategy: Optional[ConsolidationStrategy] = None,
+        event_emitter: Optional[MemoryEventEmitter] = None,
     ) -> None:
         self._config = config or HippoCoreMemoryConfig()
         self._inner = DefaultMemoryContract(epistemic_kernel=epistemic_kernel)
         self._encoding_organism_id = organism_id
         self._encoding_environment_hash = environment_hash
-        # PHASE 5: build the replay policy from config OR accept an
-        # already-instantiated ReplayPolicy.
+        # PHASE 5: replay policy.
         if replay_policy is not None:
             self._replay_policy = replay_policy
         else:
             self._replay_policy = make_policy(self._config.replay_policy)
         self._last_replay_selection: Optional[ReplaySelection] = None
-        # PHASE 6: build the consolidation strategy from config OR accept
-        # an already-instantiated ConsolidationStrategy.
+        # PHASE 6: consolidation strategy.
         if consolidation_strategy is not None:
             self._consolidation_strategy = consolidation_strategy
         else:
             self._consolidation_strategy = make_strategy(
                 self._config.consolidation_strategy,
             )
-        # PHASE 6: telemetry — last consolidation result (for inspect() /
-        # PHASE 9 benchmarks).
         self._last_consolidation_result: Optional[ConsolidationResult] = None
-        # PHASE 6: the slow consolidated store (semantic memories derived
-        # from episodic clusters). Currently stored INSIDE the same
-        # _inner store but tagged with consolidation_status='CONSOLIDATED'
-        # and memory_type=SEMANTIC. PHASE 7+ may split this into a
-        # separate physical store if performance requires.
-        # (For now, the dual-store is logical — both fast and slow
-        # memories live in the same dict but are distinguished by
-        # memory_type + consolidation_status.)
+        # PHASE 7: memory event emitter. External consumers (Organism,
+        # DevelopmentalTrajectory adapter, PHASE 9 benchmarks) register
+        # callbacks via self.events.on(callback).
+        self._event_emitter = event_emitter or MemoryEventEmitter()
+        # PHASE 7: the events emitted so far (in-memory ring; full list
+        # for short runs, capped at 1000 to prevent unbounded growth in
+        # long-running organisms — the persistent record goes through
+        # the registered callbacks to the trajectory).
+        self._event_log: list[MemoryEvent] = []
+        self._event_log_cap: int = 1000
+        # PHASE 7: optional developmental step counter — set externally
+        # by the Organism runtime via set_step(n). Used to populate
+        # MemoryEvent.step.
+        self._current_step: Optional[int] = None
 
     # ====================================================================
     # Encoding (PHASE 4) — populates the new episodic-encoding fields
@@ -206,6 +215,11 @@ class HippoCoreMemory(MemoryEngine):
         self._enrich_with_provenance(entry, action=None, outcome=None,
                                     prediction=None, environment_state=None,
                                     experience_id=None, internal_state=None)
+        # PHASE 7: emit MEMORY_ENCODED event.
+        self._emit(MemoryEventKind.MEMORY_ENCODED,
+                   memory_id=entry.memory_id,
+                   details={"memory_type": entry.memory_type.value,
+                            "origin": entry.origin})
         return entry
 
     def encode_episode(
@@ -275,6 +289,14 @@ class HippoCoreMemory(MemoryEngine):
             environment_state=environment_state, experience_id=experience_id,
             internal_state=internal_state, prediction_error=prediction_error,
         )
+        # PHASE 7: emit MEMORY_ENCODED event with episode-specific details.
+        self._emit(MemoryEventKind.MEMORY_ENCODED,
+                   memory_id=entry.memory_id,
+                   details={"memory_type": entry.memory_type.value,
+                            "origin": entry.origin,
+                            "action": repr(action),
+                            "prediction_error": prediction_error,
+                            "experience_id": experience_id})
         return entry
 
     def _enrich_with_provenance(
@@ -346,6 +368,55 @@ class HippoCoreMemory(MemoryEngine):
         self._encoding_organism_id = organism_id
         self._encoding_environment_hash = environment_hash
 
+    # ====================================================================
+    # PHASE 7: memory event emission
+    # ====================================================================
+
+    @property
+    def events(self) -> MemoryEventEmitter:
+        """Public emitter for external consumers to register callbacks.
+
+        Usage:
+            hcm.events.on(lambda ev: trajectory.record(ev))
+        """
+        return self._event_emitter
+
+    @property
+    def event_log(self) -> list[MemoryEvent]:
+        """In-memory ring of recent events (capped at 1000). For the
+        full event stream, register a callback via ``events.on(...)``."""
+        return list(self._event_log)
+
+    def set_step(self, step: Optional[int]) -> None:
+        """Set the current developmental step. The Organism runtime calls
+        this at the start of each tick so memory events get a step
+        number for trajectory alignment. Pass None to clear."""
+        self._current_step = step
+
+    def _emit(
+        self,
+        kind: MemoryEventKind,
+        memory_id: str = "",
+        details: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Emit a memory event to all registered callbacks + append to
+        the in-memory log (capped)."""
+        event = MemoryEvent(
+            kind=kind,
+            memory_id=memory_id,
+            step=self._current_step,
+            organism_id=self._encoding_organism_id,
+            engine="hippocore",
+            details=details or {},
+        )
+        self._event_log.append(event)
+        # Cap the in-memory log to prevent unbounded growth.
+        if len(self._event_log) > self._event_log_cap:
+            # Drop the oldest 25% (avoid per-event cost).
+            keep = int(self._event_log_cap * 0.75)
+            self._event_log = self._event_log[-keep:]
+        self._event_emitter.emit(event)
+
     @property
     def replay_policy(self) -> ReplayPolicy:
         """The currently-configured ReplayPolicy instance."""
@@ -408,14 +479,26 @@ class HippoCoreMemory(MemoryEngine):
     ) -> list[MemoryEntry]:
         """PHASE 3: substring filter (delegated).
         PHASE 4: similarity-based k-NN retrieval + pattern completion."""
-        return self._inner.retrieve(
+        results = self._inner.retrieve(
             query=query, memory_type=memory_type,
             min_confidence=min_confidence, min_importance=min_importance,
             tags=tags, limit=limit,
         )
+        # PHASE 7: emit MEMORY_RETRIEVED for each returned memory.
+        for entry in results:
+            self._emit(MemoryEventKind.MEMORY_RETRIEVED,
+                       memory_id=entry.memory_id,
+                       details={"query": query, "limit": limit})
+        return results
 
     def retrieve_by_id(self, memory_id: str) -> Optional[MemoryEntry]:
-        return self._inner.retrieve_by_id(memory_id)
+        result = self._inner.retrieve_by_id(memory_id)
+        if result is not None:
+            # PHASE 7: emit MEMORY_RETRIEVED for direct lookups too.
+            self._emit(MemoryEventKind.MEMORY_RETRIEVED,
+                       memory_id=memory_id,
+                       details={"query": None, "limit": 1, "direct": True})
+        return result
 
     # ====================================================================
     # Association — already DUPLICATED in DefaultMemoryContract (audit §9).
@@ -439,9 +522,18 @@ class HippoCoreMemory(MemoryEngine):
         self, memory_id: str, reward: float = 0.0,
         prediction_error: Optional[float] = None,
     ) -> Optional[MemoryEntry]:
-        return self._inner.reconsolidate(
+        result = self._inner.reconsolidate(
             memory_id, reward=reward, prediction_error=prediction_error,
         )
+        if result is not None:
+            # PHASE 7: emit MEMORY_RECONSOLIDATED event.
+            self._emit(MemoryEventKind.MEMORY_RECONSOLIDATED,
+                       memory_id=memory_id,
+                       details={"reward": reward,
+                                "prediction_error": prediction_error,
+                                "new_importance": result.importance,
+                                "new_consolidation_status": result.consolidation_status})
+        return result
 
     # ====================================================================
     # Replay — PHASE 5 will override with policy-driven generative replay.
@@ -495,6 +587,14 @@ class HippoCoreMemory(MemoryEngine):
         seed = self._config.replay_seed
         selection = self._replay_policy.select(candidates, n=n, seed=seed)
         self._last_replay_selection = selection
+        # PHASE 7: emit MEMORY_REPLAYED for each selected memory.
+        for entry in selection.entries:
+            self._emit(MemoryEventKind.MEMORY_REPLAYED,
+                       memory_id=entry.memory_id,
+                       details={"policy": selection.policy_name,
+                                "n_requested": selection.n_requested,
+                                "n_selected": selection.n_selected,
+                                "seed": selection.seed})
         return selection.entries
 
     # ====================================================================
@@ -605,6 +705,15 @@ class HippoCoreMemory(MemoryEngine):
             strategy_name=self._consolidation_strategy.name,
             elapsed_seconds=elapsed,
         )
+        # PHASE 7: emit MEMORY_CONSOLIDATED for each source + MEMORY_ENCODED
+        # for each target (so the trajectory records both the source-side
+        # status change AND the new semantic memory creation).
+        for src_id in source_ids_marked:
+            self._emit(MemoryEventKind.MEMORY_CONSOLIDATED,
+                       memory_id=src_id,
+                       details={"strategy": self._consolidation_strategy.name,
+                                "target_ids": target_ids,
+                                "new_status": "CONSOLIDATED"})
         return len(target_ids)
 
     @property
@@ -632,7 +741,14 @@ class HippoCoreMemory(MemoryEngine):
     def forget(
         self, memory_id: str, justification: str = "", hard: bool = False,
     ) -> bool:
-        return self._inner.forget(memory_id, justification, hard)
+        result = self._inner.forget(memory_id, justification, hard)
+        if result:
+            # PHASE 7: emit MEMORY_FORGOTTEN event.
+            self._emit(MemoryEventKind.MEMORY_FORGOTTEN,
+                       memory_id=memory_id,
+                       details={"justification": justification,
+                                "hard": hard})
+        return result
 
     # ====================================================================
     # Checkpoint / restore — same schema as DefaultMemoryContract in PHASE 3.

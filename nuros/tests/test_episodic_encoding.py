@@ -412,8 +412,8 @@ class TestHippoCoreSchemaVersionBump(unittest.TestCase):
             hcm.SCHEMA_VERSION.startswith("nuros.hippocore.HippoCoreMemory.v1.phase"),
             f"unexpected schema_version: {hcm.SCHEMA_VERSION}",
         )
-        # PHASE 6 bumps to v1.phase6 (consolidation pipeline).
-        self.assertEqual(hcm.SCHEMA_VERSION, "nuros.hippocore.HippoCoreMemory.v1.phase6")
+        # PHASE 7 bumps to v1.phase7 (memory event emission).
+        self.assertEqual(hcm.SCHEMA_VERSION, "nuros.hippocore.HippoCoreMemory.v1.phase7")
         payload = hcm.checkpoint()
         self.assertEqual(payload["schema_version"], hcm.SCHEMA_VERSION)
 

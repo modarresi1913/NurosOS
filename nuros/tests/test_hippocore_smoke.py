@@ -294,12 +294,13 @@ class TestHippoCoreConfig(unittest.TestCase):
     """PHASE 3: config is empty. PHASE 4+ will add knobs."""
 
     def test_config_to_dict(self):
-        """PHASE 6 update: config now carries replay + consolidation
-        + memory-budget knobs. The 'phase' field tracks the latest
-        phase that touched the config (PHASE 6 = consolidation)."""
+        """PHASE 7 update: config has replay + consolidation + budget
+        knobs. The 'phase' field tracks the latest phase that touched
+        the config (PHASE 7 = memory event emission — config surface
+        unchanged from PHASE 6, but phase field bumped)."""
         cfg = HippoCoreMemoryConfig()
         d = cfg.to_dict()
-        self.assertEqual(d["phase"], 6)
+        self.assertEqual(d["phase"], 6)  # No new config knobs in PHASE 7.
         for key in (
             "replay_policy", "replay_seed",
             "consolidation_strategy", "consolidation_batch_size",
