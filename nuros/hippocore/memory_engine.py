@@ -39,6 +39,13 @@ from nuros.hippocore.replay_policy import (
     ReplaySelection,
     make_policy,
 )
+from nuros.hippocore.consolidation import (
+    ConsolidationResult,
+    ConsolidationStrategy,
+    STRATEGIES,
+    TagJaccardConsolidation,
+    make_strategy,
+)
 
 
 class HippoCoreMemoryConfig:
@@ -61,21 +68,43 @@ class HippoCoreMemoryConfig:
         self,
         replay_policy: str = "recent",
         replay_seed: Optional[int] = None,
+        consolidation_strategy: str = "tag_jaccard",
+        consolidation_batch_size: int = 50,
+        consolidation_similarity_threshold: float = 0.5,
+        max_episodes: Optional[int] = None,
+        max_memory_bytes: Optional[int] = None,
     ) -> None:
         if replay_policy not in POLICIES:
             raise ValueError(
                 f"Unknown replay_policy {replay_policy!r}. "
                 f"Known: {sorted(POLICIES.keys())}"
             )
+        if consolidation_strategy not in STRATEGIES:
+            raise ValueError(
+                f"Unknown consolidation_strategy {consolidation_strategy!r}. "
+                f"Known: {sorted(STRATEGIES.keys())}"
+            )
         self.replay_policy = replay_policy
         self.replay_seed = replay_seed
+        # PHASE 6: consolidation knobs.
+        self.consolidation_strategy = consolidation_strategy
+        self.consolidation_batch_size = max(1, consolidation_batch_size)
+        self.consolidation_similarity_threshold = float(consolidation_similarity_threshold)
+        # PHASE 6: memory budget knobs (master prompt §16).
+        self.max_episodes = max_episodes
+        self.max_memory_bytes = max_memory_bytes
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "phase": 5,
+            "phase": 6,
             "knobs": {
                 "replay_policy": self.replay_policy,
                 "replay_seed": self.replay_seed,
+                "consolidation_strategy": self.consolidation_strategy,
+                "consolidation_batch_size": self.consolidation_batch_size,
+                "consolidation_similarity_threshold": self.consolidation_similarity_threshold,
+                "max_episodes": self.max_episodes,
+                "max_memory_bytes": self.max_memory_bytes,
             },
         }
 
@@ -91,7 +120,7 @@ class HippoCoreMemory(MemoryEngine):
     no caller breaks.
     """
 
-    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase5"
+    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase6"
 
     def __init__(
         self,
@@ -100,17 +129,10 @@ class HippoCoreMemory(MemoryEngine):
         organism_id: Optional[str] = None,
         environment_hash: Optional[str] = None,
         replay_policy: Optional[ReplayPolicy] = None,
+        consolidation_strategy: Optional[ConsolidationStrategy] = None,
     ) -> None:
         self._config = config or HippoCoreMemoryConfig()
-        # In PHASE 3-5, we delegate non-encode operations to
-        # DefaultMemoryContract. PHASE 4 overrides encode() to populate
-        # the new episodic-encoding fields and structured_provenance.
-        # PHASE 5 overrides replay() to support policy-driven selection.
-        # PHASE 6 will override consolidate() and may swap the inner
-        # engine for a real dual-store (fast episodic + slow consolidated).
         self._inner = DefaultMemoryContract(epistemic_kernel=epistemic_kernel)
-        # PHASE 4: the encoding context (organism + environment) is set
-        # via the constructor OR via encode_episode(organism_id=...).
         self._encoding_organism_id = organism_id
         self._encoding_environment_hash = environment_hash
         # PHASE 5: build the replay policy from config OR accept an
@@ -119,9 +141,26 @@ class HippoCoreMemory(MemoryEngine):
             self._replay_policy = replay_policy
         else:
             self._replay_policy = make_policy(self._config.replay_policy)
-        # PHASE 5: last replay selection telemetry (for inspect() /
-        # checkpoint() consumers).
         self._last_replay_selection: Optional[ReplaySelection] = None
+        # PHASE 6: build the consolidation strategy from config OR accept
+        # an already-instantiated ConsolidationStrategy.
+        if consolidation_strategy is not None:
+            self._consolidation_strategy = consolidation_strategy
+        else:
+            self._consolidation_strategy = make_strategy(
+                self._config.consolidation_strategy,
+            )
+        # PHASE 6: telemetry — last consolidation result (for inspect() /
+        # PHASE 9 benchmarks).
+        self._last_consolidation_result: Optional[ConsolidationResult] = None
+        # PHASE 6: the slow consolidated store (semantic memories derived
+        # from episodic clusters). Currently stored INSIDE the same
+        # _inner store but tagged with consolidation_status='CONSOLIDATED'
+        # and memory_type=SEMANTIC. PHASE 7+ may split this into a
+        # separate physical store if performance requires.
+        # (For now, the dual-store is logical — both fast and slow
+        # memories live in the same dict but are distinguished by
+        # memory_type + consolidation_status.)
 
     # ====================================================================
     # Encoding (PHASE 4) — populates the new episodic-encoding fields
@@ -466,17 +505,124 @@ class HippoCoreMemory(MemoryEngine):
         self,
         source_type: Optional[MemoryType] = None,
         target_type: Optional[MemoryType] = None,
-        batch_size: int = 50,
-        similarity_threshold: float = 0.85,
+        batch_size: Optional[int] = None,
+        similarity_threshold: Optional[float] = None,
     ) -> int:
-        """PHASE 3: no-op stub (returns 0).
-        PHASE 6: real fast→slow consolidation pipeline — clusters
-        source memories by content similarity, derives target memories
-        with summaries, lowers source importance."""
-        return self._inner.consolidate(
-            source_type=source_type, target_type=target_type,
-            batch_size=batch_size, similarity_threshold=similarity_threshold,
+        """PHASE 6 real fast→slow consolidation pipeline.
+
+        Algorithm (master prompt §10):
+          1. Select up to ``batch_size`` memories of ``source_type``
+             (default EPISODIC) that are NOT yet consolidated
+             (consolidation_status == 'ACTIVE').
+          2. Cluster them by content similarity (via the configured
+             ConsolidationStrategy).
+          3. For each cluster of size > 1, derive one ``target_type``
+             memory (default SEMANTIC) whose ``content`` is a summary
+             and whose ``relationships`` link back to the source memories
+             via associate(). Singleton clusters (size 1) are not
+             consolidated (no benefit).
+          4. Mark the consolidated sources: ``consolidation_status =
+             'CONSOLIDATED'`` and lower their importance by 50%.
+
+        Returns the number of ``target_type`` memories created.
+
+        The result is stored in ``self._last_consolidation_result`` for
+        telemetry (used by inspect() and PHASE 9 benchmarks).
+        """
+        src_t = source_type if source_type is not None else MemoryType.EPISODIC
+        tgt_t = target_type if target_type is not None else MemoryType.SEMANTIC
+        bs = batch_size if batch_size is not None else self._config.consolidation_batch_size
+        sim_thr = (similarity_threshold
+                   if similarity_threshold is not None
+                   else self._config.consolidation_similarity_threshold)
+
+        start = time.time()
+
+        # 1. Select candidate sources (not yet consolidated).
+        candidates: list[MemoryEntry] = []
+        for entry in self._inner.iter_all():
+            if entry.memory_type != src_t:
+                continue
+            if entry.consolidation_status != "ACTIVE":
+                continue
+            if entry.forgotten:
+                continue
+            candidates.append(entry)
+            if len(candidates) >= bs:
+                break
+
+        if not candidates:
+            self._last_consolidation_result = ConsolidationResult(
+                strategy_name=self._consolidation_strategy.name,
+                elapsed_seconds=time.time() - start,
+            )
+            return 0
+
+        # 2. Cluster.
+        clusters = self._consolidation_strategy.cluster(candidates, sim_thr)
+
+        # 3. Derive target memories from clusters of size > 1.
+        target_ids: list[str] = []
+        source_ids_marked: list[str] = []
+        for cluster in clusters:
+            if len(cluster) < 2:
+                # Singleton cluster — nothing to consolidate.
+                continue
+            # Derive content for the consolidated memory.
+            derived_content = self._consolidation_strategy.derive_target_content(cluster)
+            # Build the target entry — use the underlying store so it
+            # gets a fresh memory_id and proper access tracking.
+            target = self._inner.encode(
+                content=derived_content,
+                memory_type=tgt_t,
+                origin=f"consolidated_by_{self._consolidation_strategy.name}",
+                # Importance = mean of source importances (preserves signal).
+                importance=sum(e.importance for e in cluster) / len(cluster),
+                confidence=1.0,
+                epistemic_label=EpistemicLabel.INFERRED,
+                tags=set().union(*(e.tags for e in cluster)) if cluster else set(),
+            )
+            target.consolidation_status = "CONSOLIDATED"
+            # Mark all source memories as consolidated + lower importance.
+            for src in cluster:
+                src.consolidation_status = "CONSOLIDATED"
+                src.importance = max(0.0, src.importance * 0.5)
+                # Associate the source ↔ the target.
+                self._inner.associate(
+                    src.memory_id, target.memory_id,
+                    relation_type="consolidated_into",
+                    strength=1.0, bidirectional=True,
+                )
+                source_ids_marked.append(src.memory_id)
+            target_ids.append(target.memory_id)
+
+        elapsed = time.time() - start
+        self._last_consolidation_result = ConsolidationResult(
+            n_clusters=len(clusters),
+            n_target_created=len(target_ids),
+            source_ids=source_ids_marked,
+            target_ids=target_ids,
+            strategy_name=self._consolidation_strategy.name,
+            elapsed_seconds=elapsed,
         )
+        return len(target_ids)
+
+    @property
+    def consolidation_strategy(self) -> ConsolidationStrategy:
+        """The currently-configured ConsolidationStrategy."""
+        return self._consolidation_strategy
+
+    def set_consolidation_strategy(self, strategy: ConsolidationStrategy) -> None:
+        """Swap the consolidation strategy at runtime. Used by PHASE 9
+        benchmarks to compare strategies on identical input sets."""
+        self._consolidation_strategy = strategy
+        self._last_consolidation_result = None
+
+    @property
+    def last_consolidation_result(self) -> Optional[ConsolidationResult]:
+        """Telemetry: the result of the most recent consolidate() call.
+        None if consolidate() has not been called yet."""
+        return self._last_consolidation_result
 
     # ====================================================================
     # Forgetting — uses the same soft-delete semantics as DefaultMemoryContract.

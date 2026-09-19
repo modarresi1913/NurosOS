@@ -186,15 +186,24 @@ class TestHippoCorePhase3Equivalence(unittest.TestCase):
         self.assertEqual(len(self.default.replay(n=3)), 3)
         self.assertEqual(len(self.hippocore.replay(n=3)), 3)
 
-    def test_consolidate_is_noop_in_both_engines(self):
-        """Both engines return 0 in PHASE 3.
-        Will DIVERGE in PHASE 6 (HippoCore will run the real
-        fast→slow consolidation pipeline)."""
+    def test_consolidate_is_noop_in_default_but_active_in_hippocore(self):
+        """PHASE 6: DefaultMemoryContract.consolidate() is still a no-op
+        stub returning 0. HippoCoreMemory.consolidate() now runs the real
+        fast→slow pipeline (audit §11.1) — but in this golden-file
+        equivalence test, the buffers contain only singleton episodes
+        (no clusters of size >= 2), so HippoCoreMemory.consolidate()
+        also returns 0 here. The real consolidation behaviour is tested
+        in nuros/tests/test_consolidation.py."""
         for content in ["a", "b", "c"]:
             self.default.encode(content, importance=0.5)
             self.hippocore.encode(content, importance=0.5)
+        # Default = no-op stub.
         self.assertEqual(self.default.consolidate(), 0)
-        self.assertEqual(self.hippocore.consolidate(), 0)
+        # HippoCore = real pipeline, but no clusters formed here.
+        # (Singletons 'a', 'b', 'c' don't share tags → Jaccard = 0 →
+        # each is its own singleton cluster → no consolidation.)
+        h_result = self.hippocore.consolidate()
+        self.assertEqual(h_result, 0)
 
     def test_checkpoint_round_trips_in_hippocore(self):
         self.hippocore.encode("ephemeral", importance=0.5)
@@ -285,14 +294,19 @@ class TestHippoCoreConfig(unittest.TestCase):
     """PHASE 3: config is empty. PHASE 4+ will add knobs."""
 
     def test_config_to_dict(self):
-        """PHASE 5 update: config now carries replay_policy + replay_seed
-        knobs. The 'phase' field tracks the latest phase that touched
-        the config (PHASE 5 = replay policies)."""
+        """PHASE 6 update: config now carries replay + consolidation
+        + memory-budget knobs. The 'phase' field tracks the latest
+        phase that touched the config (PHASE 6 = consolidation)."""
         cfg = HippoCoreMemoryConfig()
         d = cfg.to_dict()
-        self.assertEqual(d["phase"], 5)
-        self.assertIn("replay_policy", d["knobs"])
-        self.assertIn("replay_seed", d["knobs"])
+        self.assertEqual(d["phase"], 6)
+        for key in (
+            "replay_policy", "replay_seed",
+            "consolidation_strategy", "consolidation_batch_size",
+            "consolidation_similarity_threshold",
+            "max_episodes", "max_memory_bytes",
+        ):
+            self.assertIn(key, d["knobs"])
 
     def test_config_can_be_passed_to_hippocore_memory(self):
         cfg = HippoCoreMemoryConfig()
