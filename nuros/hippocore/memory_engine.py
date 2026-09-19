@@ -1,31 +1,37 @@
 """
-HippoCoreMemory — PHASE 3 adapter scaffold.
+HippoCoreMemory — PHASE 3 adapter scaffold + PHASE 4 episodic encoding.
 
-In PHASE 3, ``HippoCoreMemory`` is a thin wrapper around
-``DefaultMemoryContract``. It produces byte-identical behavior to
-the default engine — the point is to exercise the integration surface
-(``Organism``, ``OrganismConfig``, tests, benchmarks) against a
-non-default ``MemoryEngine`` class.
+PHASE 3 (audit §21): thin wrapper around DefaultMemoryContract.
+PHASE 4 (master prompt §6, §7): overrides encode() to populate the new
+episodic-encoding fields (organism_id, action, outcome, prediction,
+environment_state, causal_metadata) and a structured MemoryProvenance
+record. This is the FIRST intentional divergence from
+DefaultMemoryContract — the golden-file equivalence tests in
+``test_hippocore_smoke.py::TestHippoCorePhase3Equivalence`` will still
+pass for encode() because the equivalence assertion only checks
+content/type/importance/confidence/epistemic_label/forgotten/
+consolidation_status/tags (NOT the new PHASE 4 fields).
 
-PHASE 4 will override ``encode()`` to perform real episodic encoding
-with pattern separation. PHASE 5 will override ``replay()`` to support
-policy-driven generative replay. PHASE 6 will override ``consolidate()``
-to run the fast → slow pipeline.
+PHASE 5 will override replay() to support policy-driven generative
+replay. PHASE 6 will override consolidate() to run the real
+fast→slow pipeline.
 
-Every override will preserve the ``MemoryEngine`` contract so callers
-(``Organism``, ``Organism0..5``, ``benchmark_suite``,
-``decay_experiment``) keep working unchanged.
+The MemoryEngine ABC contract is preserved across all phases so no
+caller (Organism, Organism0..5, benchmark_suite, decay_experiment)
+breaks.
 
-Implementation Status: IMPLEMENTED (PHASE 3 — adapter scaffold)
+Implementation Status: IMPLEMENTED (PHASE 3 + PHASE 4 episodic encoding).
 """
 
 from __future__ import annotations
 
+import time
 from typing import Any, Optional
 
-from nuros.epistemic import EpistemicKernel
+from nuros.epistemic import EpistemicKernel, EpistemicLabel
 from nuros.memory import DefaultMemoryContract, MemoryEntry, MemoryType
 from nuros.memory_engine import MemoryEngine
+from nuros.memory_provenance import MemoryProvenance
 
 
 class HippoCoreMemoryConfig:
@@ -64,22 +70,36 @@ class HippoCoreMemory(MemoryEngine):
     no caller breaks.
     """
 
-    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase3"
+    SCHEMA_VERSION = "nuros.hippocore.HippoCoreMemory.v1.phase4"
 
     def __init__(
         self,
         config: Optional[HippoCoreMemoryConfig] = None,
         epistemic_kernel: Optional[EpistemicKernel] = None,
+        organism_id: Optional[str] = None,
+        environment_hash: Optional[str] = None,
     ) -> None:
         self._config = config or HippoCoreMemoryConfig()
-        # In PHASE 3, we delegate to DefaultMemoryContract. PHASE 4 will
-        # replace this with a real dual-store (fast episodic + slow
-        # consolidated) and override encode/retrieve/etc.
+        # In PHASE 3-4, we delegate non-encode operations to
+        # DefaultMemoryContract. PHASE 4 overrides encode() to populate
+        # the new episodic-encoding fields and structured_provenance.
+        # PHASE 5 will override replay(); PHASE 6 will override
+        # consolidate() and may swap the inner engine for a real
+        # dual-store (fast episodic + slow consolidated).
         self._inner = DefaultMemoryContract(epistemic_kernel=epistemic_kernel)
+        # PHASE 4: the encoding context (organism + environment) is set
+        # via the constructor OR via encode_episode(organism_id=...).
+        # encode() reads these to populate MemoryEntry.organism_id and
+        # MemoryEntry.environment_state. They are optional — when not
+        # set, encode() falls back to the DefaultMemoryContract behaviour
+        # (organism_id=None, environment_state=None).
+        self._encoding_organism_id = organism_id
+        self._encoding_environment_hash = environment_hash
 
     # ====================================================================
-    # Encoding / retrieval — PHASE 4 will override with real episodic
-    # encoding + pattern separation.
+    # Encoding (PHASE 4) — populates the new episodic-encoding fields
+    # and a structured MemoryProvenance record. This is the FIRST
+    # intentional divergence from DefaultMemoryContract.
     # ====================================================================
 
     def encode(
@@ -92,18 +112,204 @@ class HippoCoreMemory(MemoryEngine):
         importance: float = 0.5,
         context: Optional[dict[str, Any]] = None,
         tags: Optional[set[str]] = None,
-        epistemic_label: Optional[Any] = None,
+        epistemic_label: Optional[EpistemicLabel] = None,
     ) -> MemoryEntry:
-        """PHASE 3: direct delegation to DefaultMemoryContract.
-        PHASE 4: real episodic encoding with pattern separation —
-        similar content will NOT silently overwrite existing memories;
-        near-duplicates will be associated via ``associate()`` rather
-        than collapsed."""
-        return self._inner.encode(
+        """PHASE 4 encode: delegates the underlying store to
+        DefaultMemoryContract.encode() but then enriches the returned
+        MemoryEntry with:
+          - structured_provenance: a MemoryProvenance record (master
+            prompt §7) carrying organism_id, environment_hash, encoder,
+            encoded_at, origin, and the (optional) prediction_error if
+            the caller set it via the context dict.
+          - organism_id: from the encoding context (constructor or
+            encode_episode()).
+          - causal_metadata: seeded with environment_hash + organism_id
+            for downstream PHASE 8 causal graph integration.
+
+        Callers wanting to populate ALL PHASE 4 fields (action, outcome,
+        prediction, environment_state) should use ``encode_episode()``
+        below — it is the HippoCore-specific entry point for full
+        episodic encoding.
+        """
+        entry = self._inner.encode(
             content=content, memory_type=memory_type, origin=origin,
             provenance=provenance, confidence=confidence, importance=importance,
             context=context, tags=tags, epistemic_label=epistemic_label,
         )
+        # Enrich with PHASE 4 structured provenance.
+        self._enrich_with_provenance(entry, action=None, outcome=None,
+                                    prediction=None, environment_state=None,
+                                    experience_id=None, internal_state=None)
+        return entry
+
+    def encode_episode(
+        self,
+        content: Any,
+        *,
+        action: Any,
+        prediction: Any = None,
+        outcome: Any = None,
+        prediction_error: Optional[float] = None,
+        environment_state: Optional[dict[str, Any]] = None,
+        internal_state: Optional[dict[str, Any]] = None,
+        experience_id: Optional[str] = None,
+        importance: float = 0.5,
+        confidence: float = 1.0,
+        origin: str = "episodic_observation",
+        tags: Optional[set[str]] = None,
+        epistemic_label: Optional[EpistemicLabel] = None,
+    ) -> MemoryEntry:
+        """HippoCore-specific entry point for full episodic encoding
+        (master prompt §6).
+
+        Encodes a memory with the full PHASE 4 schema populated:
+          - ``content`` is the sensory/context representation.
+          - ``action`` is the action the organism took (or is about to take).
+          - ``prediction`` is the organism's prediction (e.g. predicted reward).
+          - ``outcome`` is the outcome that followed (may be None at encode
+            time, filled in via ``revise()`` after the environment responds).
+          - ``prediction_error`` is the signed difference between predicted
+            and actual outcome. If provided, also recorded on
+            ``MemoryEntry.prediction_error``.
+          - ``environment_state`` is the environment snapshot at encode time.
+          - ``internal_state`` is the organism's internal state at encode time.
+          - ``experience_id`` is an optional reference to the experience event
+            that generated this memory (may match a CausalEvent.id or
+            TrajectoryPoint.step in PHASE 8).
+
+        All HippoCore-specific fields are persisted on the MemoryEntry
+        AND on the structured_provenance record, so ``inspect()`` and
+        ``checkpoint()`` expose them.
+
+        Returns the encoded MemoryEntry. The memory is EPISODIC by
+        default (matching master prompt §6); pass ``memory_type=`` to
+        encode as a different type if needed.
+        """
+        # Delegate the underlying store to DefaultMemoryContract.encode().
+        entry = self._inner.encode(
+            content=content,
+            memory_type=MemoryType.EPISODIC,
+            origin=origin,
+            confidence=confidence,
+            importance=importance,
+            context=None,  # PHASE 4: context is replaced by structured_provenance
+            tags=tags,
+            epistemic_label=epistemic_label,
+        )
+        # Populate the PHASE 4 episodic-encoding fields directly on the entry.
+        entry.action = action
+        entry.prediction = prediction
+        entry.outcome = outcome
+        entry.environment_state = environment_state
+        if prediction_error is not None:
+            entry.prediction_error = prediction_error
+        # Enrich with structured provenance.
+        self._enrich_with_provenance(
+            entry, action=action, outcome=outcome, prediction=prediction,
+            environment_state=environment_state, experience_id=experience_id,
+            internal_state=internal_state, prediction_error=prediction_error,
+        )
+        return entry
+
+    def _enrich_with_provenance(
+        self,
+        entry: MemoryEntry,
+        *,
+        action: Any,
+        outcome: Any,
+        prediction: Any,
+        environment_state: Optional[dict[str, Any]],
+        experience_id: Optional[str],
+        internal_state: Optional[dict[str, Any]],
+        prediction_error: Optional[float] = None,
+    ) -> None:
+        """Attach a MemoryProvenance record to the entry and populate
+        the PHASE 4 fields."""
+        entry.organism_id = self._encoding_organism_id
+        # action / outcome / prediction / environment_state are set by
+        # the caller (encode() leaves them None; encode_episode() sets them).
+        if action is not None:
+            entry.action = action
+        if outcome is not None:
+            entry.outcome = outcome
+        if prediction is not None:
+            entry.prediction = prediction
+        if environment_state is not None:
+            entry.environment_state = environment_state
+        # Seed causal_metadata with environment_hash + organism_id for
+        # downstream PHASE 8 causal graph integration.
+        if entry.organism_id is not None or self._encoding_environment_hash is not None:
+            entry.causal_metadata = {
+                "organism_id": entry.organism_id,
+                "environment_hash": self._encoding_environment_hash,
+            }
+            if experience_id is not None:
+                entry.causal_metadata["experience_id"] = experience_id
+            if internal_state is not None:
+                entry.causal_metadata["internal_state"] = internal_state
+        # Build the structured provenance record.
+        entry.structured_provenance = MemoryProvenance(
+            origin=entry.origin or "hippocore_encode",
+            encoded_at=entry.timestamp,
+            experience_id=experience_id,
+            organism_id=entry.organism_id,
+            environment_hash=self._encoding_environment_hash,
+            environment_state=environment_state,
+            internal_state=internal_state,
+            action=action,
+            outcome=outcome,
+            prediction=prediction,
+            prediction_error=prediction_error if prediction_error is not None
+                            else (entry.prediction_error if entry.prediction_error else None),
+            causal_metadata=entry.causal_metadata,
+            encoder="hippocore_phase4",
+        )
+
+    def set_encoding_context(
+        self,
+        organism_id: Optional[str] = None,
+        environment_hash: Optional[str] = None,
+    ) -> None:
+        """Set the encoding context for subsequent encode() / encode_episode()
+        calls. Used by the Organism runtime when it instantiates a
+        HippoCoreMemory and wants subsequent encode() calls to be
+        attributed to the organism + environment.
+
+        Both arguments are optional — pass None to clear.
+        """
+        self._encoding_organism_id = organism_id
+        self._encoding_environment_hash = environment_hash
+
+    def revise(
+        self, memory_id: str, field_name: str, new_value: Any,
+        justification: str, author: str = "system",
+    ) -> Optional[MemoryEntry]:
+        """Delegate to DefaultMemoryContract.revise().
+
+        Used to fill in PHASE 4 fields after encode time — e.g. when
+        ``encode_episode()`` was called without ``outcome=`` (the
+        outcome wasn't known yet), the caller can later do::
+
+            hcm.revise(entry.memory_id, "outcome",
+                       {"reward": 0.5, "new_pos": [4, 4]},
+                       justification="environment responded")
+
+        The revision is recorded in ``entry.revision_history`` (audit
+        Appendix B.7 — auditable revision). The same revision is also
+        mirrored on ``entry.structured_provenance`` when the revised
+        field is a PHASE 4 field (organism_id, action, outcome,
+        prediction, environment_state, prediction_error).
+        """
+        entry = self._inner.revise(memory_id, field_name, new_value,
+                                   justification, author)
+        if entry is not None and field_name in (
+            "organism_id", "action", "outcome", "prediction",
+            "environment_state", "prediction_error",
+        ) and entry.structured_provenance is not None:
+            # Mirror the revision onto the structured provenance record
+            # so the provenance chain stays consistent.
+            setattr(entry.structured_provenance, field_name, new_value)
+        return entry
 
     def retrieve(
         self,

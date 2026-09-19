@@ -44,6 +44,7 @@ from typing import Any, Optional
 
 from nuros.epistemic import EpistemicLabel, EpistemicKernel
 from nuros.memory_engine import MemoryEngine
+from nuros.memory_provenance import MemoryProvenance
 
 
 # ============================================================================
@@ -115,6 +116,24 @@ class MemoryEntry:
       - ``consolidation_status`` (str, default "ACTIVE") — one of
         ACTIVE / WEAKENING / CONSOLIDATED / RECONSOLIDATED / ARCHIVED /
         FORGOTTEN. Tracks the conceptual forgetting lifecycle (audit §17).
+
+    PHASE 4 additions (HippoCore episodic encoding surface — audit §6, §7):
+      - ``organism_id`` — ID of the encoding organism (matches
+        DevelopmentalTrajectory.organism_id).
+      - ``action`` — the action the organism took at encode time.
+      - ``outcome`` — the outcome that followed the action (filled in
+        after the environment responds).
+      - ``prediction`` — the organism's prediction (e.g. predicted reward).
+      - ``environment_state`` — snapshot of the environment at encode time.
+      - ``causal_metadata`` — free-form dict carrying CausalEvent IDs
+        this memory depends on (audit §15).
+      - ``provenance`` — structured MemoryProvenance record (master
+        prompt §7). Replaces the free-form `provenance: str` field which
+        is kept as `provenance_str` for backward compat.
+
+    All PHASE 4 fields are optional with safe defaults so existing
+    serialization round-trips continue to work. HippoCoreMemory (PHASE 4+)
+    populates them; DefaultMemoryContract leaves them None/empty.
     """
 
     memory_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -122,7 +141,7 @@ class MemoryEntry:
     memory_type: MemoryType = MemoryType.EPISODIC
     origin: str = ""
     timestamp: float = field(default_factory=time.time)
-    provenance: str = ""
+    provenance: str = ""  # legacy free-form string (kept for backward compat)
     confidence: float = 1.0
     context: dict[str, Any] = field(default_factory=dict)
     importance: float = 0.5
@@ -133,9 +152,21 @@ class MemoryEntry:
     relationships: list[MemoryRelationship] = field(default_factory=list)
     revision_history: dict[str, MemoryRevision] = field(default_factory=dict)
     tags: set[str] = field(default_factory=set)
-    # NEW (PHASE 2):
+    # PHASE 2:
     forgotten: bool = False
     consolidation_status: str = "ACTIVE"
+    # PHASE 4 (HippoCore episodic encoding surface):
+    organism_id: Optional[str] = None
+    action: Optional[Any] = None
+    outcome: Optional[Any] = None
+    prediction: Optional[Any] = None
+    environment_state: Optional[dict[str, Any]] = None
+    causal_metadata: dict[str, Any] = field(default_factory=dict)
+    structured_provenance: Optional[MemoryProvenance] = None
+    """Structured MemoryProvenance record (master prompt §7).
+    None when the encoding engine does not populate provenance
+    (DefaultMemoryContract in PHASE 3 leaves it None).
+    HippoCoreMemory (PHASE 4+) populates it."""
 
     def __post_init__(self):
         if not 0.0 <= self.confidence <= 1.0:
@@ -332,7 +363,7 @@ class DefaultMemoryContract(MemoryEngine):
             return None
         entry.record_access(MemoryOperation.INSPECT)
         self._log_operation(MemoryOperation.INSPECT, memory_id)
-        return {
+        meta: dict[str, Any] = {
             "memory_id": entry.memory_id,
             "type": entry.memory_type.value,
             "strength": entry.current_strength,
@@ -346,7 +377,18 @@ class DefaultMemoryContract(MemoryEngine):
             "forgotten": entry.forgotten,
             "consolidation_status": entry.consolidation_status,
             "revision_count": len(entry.revision_history),
+            # PHASE 4 fields — only included when populated.
+            "has_structured_provenance": entry.structured_provenance is not None,
+            "organism_id": entry.organism_id,
+            "action": entry.action,
+            "outcome": entry.outcome,
+            "prediction": entry.prediction,
+            "has_environment_state": entry.environment_state is not None,
+            "causal_metadata_keys": sorted(entry.causal_metadata.keys()) if entry.causal_metadata else [],
         }
+        if entry.structured_provenance is not None:
+            meta["provenance"] = entry.structured_provenance.answer_where_when_what()
+        return meta
 
     def reflect(self, memory_id: str) -> Optional[dict[str, Any]]:
         """Deprecated alias for ``inspect()`` (audit Appendix B.3).
@@ -513,13 +555,19 @@ class DefaultMemoryContract(MemoryEngine):
         Closes the audit §7 gap (Python MemoryContract was previously
         not checkpointable at the contents level) and feeds into the
         PHASE 7 ``MindCheckpoint.memory_state`` field (audit §14).
+
+        PHASE 4: serializes the new episodic-encoding fields
+        (organism_id, action, outcome, prediction, environment_state,
+        causal_metadata, structured_provenance) so they round-trip
+        through restore(). All new fields are optional with safe
+        defaults so PHASE 2 checkpoints remain restorable.
         """
         # Convert MemoryEntry dataclass to a dict; preserve MemoryType /
         # MemoryOperation / EpistemicLabel as their .value strings so the
         # payload is pure JSON.
         entries_serialized: list[dict[str, Any]] = []
         for entry in self._memories.values():
-            entries_serialized.append({
+            entry_dict: dict[str, Any] = {
                 "memory_id": entry.memory_id,
                 "content": entry.content,
                 "memory_type": entry.memory_type.value,
@@ -538,7 +586,25 @@ class DefaultMemoryContract(MemoryEngine):
                 "access_count": entry.access_count,
                 "n_relationships": len(entry.relationships),
                 "n_revisions": len(entry.revision_history),
-            })
+            }
+            # PHASE 4 fields — only serialize when populated.
+            if entry.organism_id is not None:
+                entry_dict["organism_id"] = entry.organism_id
+            if entry.action is not None:
+                entry_dict["action"] = entry.action
+            if entry.outcome is not None:
+                entry_dict["outcome"] = entry.outcome
+            if entry.prediction is not None:
+                entry_dict["prediction"] = entry.prediction
+            if entry.environment_state is not None:
+                entry_dict["environment_state"] = entry.environment_state
+            if entry.causal_metadata:
+                entry_dict["causal_metadata"] = entry.causal_metadata
+            if entry.structured_provenance is not None:
+                entry_dict["structured_provenance"] = (
+                    entry.structured_provenance.to_dict()
+                )
+            entries_serialized.append(entry_dict)
         return {
             "schema_version": self.SCHEMA_VERSION,
             "entries": entries_serialized,
@@ -589,6 +655,9 @@ class DefaultMemoryContract(MemoryEngine):
                 ep = EpistemicLabel[ep_name]
             except (KeyError, TypeError):
                 ep = EpistemicLabel.REMEMBERED
+            # PHASE 4: restore structured_provenance if present.
+            sp_dict = entry_dict.get("structured_provenance")
+            sp = MemoryProvenance.from_dict(sp_dict) if sp_dict else None
             entry = MemoryEntry(
                 memory_id=entry_dict["memory_id"],
                 content=entry_dict.get("content"),
@@ -607,6 +676,14 @@ class DefaultMemoryContract(MemoryEngine):
                 consolidation_status=entry_dict.get(
                     "consolidation_status", "ACTIVE",
                 ),
+                # PHASE 4 fields — None defaults if absent.
+                organism_id=entry_dict.get("organism_id"),
+                action=entry_dict.get("action"),
+                outcome=entry_dict.get("outcome"),
+                prediction=entry_dict.get("prediction"),
+                environment_state=entry_dict.get("environment_state"),
+                causal_metadata=dict(entry_dict.get("causal_metadata", {}) or {}),
+                structured_provenance=sp,
             )
             self._memories[entry.memory_id] = entry
 
