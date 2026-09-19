@@ -82,3 +82,15 @@ A three-layer stack. **Layer 1** is the `nuros-dev` Rust crate, exposed to Pytho
 ## Interpretation caveats
 
 NurosOS does NOT implement consciousness. It does NOT create biological life. It does NOT solve artificial consciousness. The divergence measured by the flagship experiment is an observable computational fact, not evidence of subjective experience. The HippoCore integration does NOT claim biological equivalence to the hippocampus — the consolidation strategies use computational proxies (tag-Jaccard, content-prefix similarity), not neural-circuit-accurate mechanisms. The objective is to build the infrastructure that lets us experimentally investigate how increasingly complex artificial cognition can emerge, stabilize, adapt, diverge, and evolve.
+
+## Scientific audit (v0.4.0-alpha)
+
+A forensic scientific audit has been completed. Key findings:
+
+- **CRITICAL**: The `heuristic_bias` in `MinimumOrganism` (`organism.rs:451-503`) hard-codes task knowledge (resource-seeking, hazard-avoidance, direction-aware movement). The learned `action_preferences` are a secondary signal.
+- **CRITICAL**: `ResourceWorld.observe()` (`environment.rs:242-250`) leaks privileged state (`direction_to_resource`, `nearest_resource_distance`, `on_resource`, `on_hazard`). The env is teacher-shaped.
+- **CRITICAL**: No baseline condition existed before the audit. A tabular Q-learning baseline has been implemented at `nuros/baselines/q_learning/`.
+- **CRITICAL**: Memory is NOT consulted during action selection. `Organism.tick()` does not call `MemoryEngine.retrieve()`. HippoCore is technically implemented but scientifically inert until wired to behavior.
+- **HIGH**: Single-seed flagship results are anecdotal. 30-seed replication is needed.
+
+The audit produced 11 deliverable documents (see `docs/RESEARCH_AUDIT.md` for the full list). HippoCore should be treated as a **future experimental intervention**, not a current capability.

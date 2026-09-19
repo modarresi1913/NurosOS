@@ -145,13 +145,21 @@ These are research questions, not predetermined conclusions:
 2. How does environmental history alter identical initial architectures?
 3. What measurable trade-offs exist between plasticity and stability?
 4. Can artificial cognitive capabilities emerge through development rather
-   than explicit programming?
+   than explicit programming? **[UNVALIDATED]** — the `heuristic_bias`
+   (`organism.rs:451-503`) hard-codes task knowledge; learned signal is
+   secondary. See `docs/RESEARCH_AUDIT.md` §9.
 5. How does accumulated experience alter future behavior?
 6. Can cognitive trajectories be reproduced experimentally?
+   **[IMPLEMENTED]** — verified by 341 tests; see `docs/REPRODUCIBILITY_SPEC.md`.
 7. Can counterfactual developmental histories improve planning?
+   **[PROPOSED]** — mechanism implemented (`CounterfactualSelf`); benefit
+   unmeasured. See `docs/RESEARCH_AUDIT.md` §3.
 8. What computational constraints govern artificial cognitive development?
+   **[PROPOSED]** — mechanism implemented (`CognitiveMetabolism`); benefit
+   unmeasured.
 9. Can artificial organisms specialize without explicit specialization
-   programming?
+   programming? **[UNVALIDATED]** — `maturation_schedule` transitions are
+   hard-coded thresholds (`organism.rs:507-528`). Not emergent.
 10. Which properties of cognition are architecture-dependent versus
     development-dependent?
 

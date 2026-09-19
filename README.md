@@ -455,7 +455,7 @@ python -m pytest nuros/tests/test_developmental_substrate.py -v
 python -m pytest nuros/tests/test_core.py -v
 ```
 
-**Total**: 322 tests passing ✅ (247 Python HippoCore + 57 Rust + 18 integration) — across 8 test suites.
+**Total**: 341 tests ✅ (266 Python [247 HippoCore + 19 Q-learning] + 57 Rust + 18 integration) — across 9 test suites.
 
 | Test Suite | File | Count | Phase |
 |---|---|---|---|
@@ -467,6 +467,7 @@ python -m pytest nuros/tests/test_core.py -v
 | Consolidation | `nuros/tests/test_consolidation.py` | 32 | 6 |
 | Memory events | `nuros/tests/test_memory_events.py` | 19 | 7 |
 | Causal graph | `nuros/tests/test_causal_graph.py` | 27 | 8 |
+| Q-learning baseline | `nuros/tests/test_q_learning.py` | 19 | Audit |
 | Rust developmental substrate | `nuros-dev/src/*.rs` `#[cfg(test)]` | 57 | v0.3.0 |
 | Python integration | `nuros/tests/test_developmental_substrate.py` | 18 | v0.3.0 |
 
@@ -498,6 +499,8 @@ NurosOS/
 │   ├── genome.py
 │   ├── version_control.py
 │   ├── observatory.py
+│   ├── baselines/                 # Scientific audit baselines
+│   │   └── q_learning/            # Tabular Q-learning baseline (19 tests)
 │   ├── hippocore/                # HippoCore integration (PHASE 3+)
 │   │   ├── __init__.py
 │   │   ├── memory_engine.py     # HippoCoreMemory(MemoryEngine)
@@ -563,6 +566,15 @@ NurosOS/
 │   ├── METRICS.md                         # Metric profile
 │   ├── REPRODUCIBILITY.md                 # Reproducibility invariants
 │   ├── EXPERIMENTS.md                     # Experiment guide
+│   ├── RESEARCH_AUDIT.md                  # 17-section forensic audit (PHASE 0)
+│   ├── ARCHITECTURE_AUDIT.md             # Module-level cross-check
+│   ├── MEMORY_AUDIT.md                    # Memory subsystem audit
+│   ├── EXPERIMENTAL_ROADMAP.md           # Recommended execution order
+│   ├── HIPPOCORE_INTEGRATION_PLAN.md     # Future HippoCore intervention design
+│   ├── SCIENTIFIC_RISKS.md               # 14 risks classified by severity
+│   ├── BASELINE_SPEC.md                  # Q-learning baseline specification
+│   ├── REPRODUCIBILITY_SPEC.md            # 7 reproducibility invariants
+│   ├── METRICS_SPEC.md                   # 19-metric specification
 │   ├── architecture/SPECIFICATION.md
 │   ├── adr/
 │   │   ├── 0001-no-filesystem.md
@@ -592,13 +604,12 @@ NurosOS/
 |-------|-------|--------|
 | **Phase 1-9** | Developmental substrate: Genome, State, Lifecycle, Environments, MinimumOrganism, Trajectory, Checkpoint+Replay, MindDiff, Telemetry, CausalityGraph, Same Genome/Different World experiment | ✅ Complete |
 | **Phase 10** | Mind Observatory: text renderers + PNG plots + CLI | ✅ Complete |
-| **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | ✅ Complete |
-| **Phase 12** | Cognitive/Epistemic Metabolism: 7 budgets + 9 operations + value-of-information rule | ✅ Complete |
-| **Phase 13** | Artificial Aging: 5 dimensions (memory degradation, plasticity, processing, experience, consolidation) | ✅ Complete |
+| **Phase 11** | CounterfactualSelf + PossibleSelfSpace: alternative developmental histories | ✅ Implemented ⚠️ Benefit unmeasured |
+| **Phase 12** | Cognitive/Epistemic Metabolism: 7 budgets + 9 operations + value-of-information rule | ✅ Implemented ⚠️ Benefit unmeasured |
+| **Phase 13** | Artificial Aging: 5 dimensions (memory degradation, plasticity, processing, experience, consolidation) | ✅ Implemented ⚠️ Benefit unmeasured |
 | **Phase 14** | Artificial Evolution: mutation/selection/inheritance on DevelopmentalGenome | 📋 Proposed |
-| **Phase 15** | **HippoCore Integration: 10 sub-phases** (audit → memory contract → adapter → episodic encoding → replay policies → consolidation → trajectory → causal graph → benchmarks → docs) | ✅ Complete (`feature/hippocore-integration-audit` branch) |
-
-See [ROADMAP.md](ROADMAP.md) for the full version-by-version roadmap.
+| **Phase 15** | **HippoCore Integration: 10 sub-phases** (audit → memory contract → adapter → episodic encoding → replay policies → consolidation → trajectory → causal graph → benchmarks → docs) | ⚠️ Implemented but NOT empirically validated — see [Scientific Audit](#scientific-audit) |
+| **Audit** | **Scientific audit + Q-learning baseline + 11 deliverables** (RESEARCH_AUDIT, ARCHITECTURE_AUDIT, MEMORY_AUDIT, EXPERIMENTS preregistration, ABLATION_MATRIX, etc.) | ✅ Complete |
 
 ---
 
@@ -608,13 +619,17 @@ See [ROADMAP.md](ROADMAP.md) for the full version-by-version roadmap.
 A: NurosOS is an open-source experimental substrate for synthetic development, written in Rust and Python. It provides the runtime, interfaces, environments, developmental mechanisms, observability, and reproducibility infrastructure required to instantiate, develop, measure, fork, replay, and compare artificial cognitive systems. The fundamental object is not MODEL but TRAJECTORY; not AGENT but DEVELOPING ORGANISM.
 
 **Q: What is the HippoCore integration?**
-A: The HippoCore integration (v0.4.0-alpha) adds a `MemoryEngine` ABC with two implementations: `DefaultMemoryContract` (backward-compat) and `HippoCoreMemory` (episodic encoding, structured provenance, 5 replay policies, fast→slow consolidation, memory event emission for the developmental trajectory, and causal graph integration). Shipped as 10 logical phases on the `feature/hippocore-integration-audit` branch. 247 Python tests passing. NO LLM dependency.
+A: The HippoCore integration (v0.4.0-alpha) adds a `MemoryEngine` ABC with two implementations: `DefaultMemoryContract` (backward-compat) and `HippoCoreMemory` (episodic encoding, structured provenance, 5 replay policies, fast→slow consolidation, memory event emission for the developmental trajectory, and causal graph integration). Shipped as 10 logical phases on the `feature/hippocore-integration-audit` branch. 266 Python tests passing (incl. Q-learning baseline). NO LLM dependency.
+
+> ⚠️ **Scientific caveat** (see [Scientific Audit](#scientific-audit)): HippoCore is **technically implemented but NOT empirically validated**. `Organism.tick()` does not yet consult `MemoryEngine.retrieve()` during action selection — memory is a post-hoc log, not a causal driver of behavior. HippoCore should be treated as a **future experimental intervention**, not a current capability. See `docs/HIPPOCORE_INTEGRATION_PLAN.md`.
 
 **Q: How does NurosOS differ from an AI agent framework?**
 A: Traditional AI follows the inversion `Model → Training → Agent`. NurosOS inverts this again: `Developmental Genome → Environment → Experience → Development → Individual Cognitive Trajectory → Artificial Organism`. The agent is not the primitive; the developing organism is the primitive. NurosOS provides developmental state, artificial ontogenesis, environmental interaction, mind provenance, mind diff, reproducibility, and developmental experiments — none of which are primitives of an agent framework.
 
 **Q: What is the Same Genome / Different World experiment?**
 A: The flagship NurosOS experiment instantiates two organisms from the same developmental genome, places them in differently-seeded environments, develops both for the same number of steps, and measures the developmental divergence between them. The experiment demonstrates Computational Developmental Divergence: identical initial computational conditions producing divergent developmental states under different environmental histories. This is an observable computational fact, NOT evidence of consciousness or biological individuality.
+
+> ⚠️ **Scientific caveat** (see [Scientific Audit](#scientific-audit)): The divergence is **confounded** by (a) the environment's RNG-dependent resource placement, (b) the organism's hard-coded `heuristic_bias` that reads the env's privileged `direction_to_resource` field, and (c) the env emitting privileged observation fields (`on_resource`, `on_hazard`, `nearest_resource_distance`). The divergence may be an **artifact** of these confounds, not of learning or development. The audit recommends running with privileged fields stripped + bias ablated to test this. Single-seed results are **anecdotal**; 30-seed replication is needed.
 
 **Q: Does NurosOS implement consciousness?**
 A: No. NurosOS does not implement consciousness, does not create biological life, and does not solve artificial consciousness. The divergence measured by the flagship experiment is an observable computational fact, not evidence of subjective experience. NurosOS treats consciousness, sentience, subjective experience, and artificial life as open research questions, not as solved problems.
@@ -626,7 +641,7 @@ A: No. NurosOS is research software at v0.4.0-alpha. It is not production-ready.
 A: Rust (>=1.75) for the developmental substrate (`nuros-dev` crate, exposed via PyO3) and the neuromorphic kernel (preserved from v0.1.0 as a future execution backend). Python (>=3.10) for the cognitive layer, experiments, and integration tests. The HippoCore package (`nuros/hippocore/`) is pure Python — NO LLM dependency, NO external model weights.
 
 **Q: Does HippoCore depend on an LLM?**
-A: No. The HippoCore package is fully local and deterministic. All "novelty" / "importance" / "prediction_error" weighting is computed from local memory fields. Pattern separation uses content-addressable storage (UUIDs + tags). Consolidation uses Jaccard / content-prefix similarity, not embedding-based clustering. Master prompt §23 (no LLM dependency for core memory) is satisfied.
+A: No. The HippoCore package is fully local and deterministic. All "novelty" / "importance" / "prediction_error" weighting is computed from local memory fields. Pattern separation uses content-addressable storage (UUIDs + tags) — this is **storage-level** separation, not neural-circuit-accurate pattern separation. Consolidation uses Jaccard / content-prefix similarity, not embedding-based clustering. Master prompt §23 (no LLM dependency for core memory) is satisfied.
 
 **Q: What is a Developmental Genome?**
 A: A `DevelopmentalGenome` is a serializable, hashable specification of an organism's initial developmental conditions. It includes architecture, initial memory, initial capabilities, plasticity rules, biases, maturation schedule, homeostasis setpoints, energy model, and mutation parameters. Two organisms instantiated from the same genome, placed in different environments, should produce divergent developmental trajectories. The genome has a canonical SHA-256 hash that becomes part of every checkpoint, trajectory, and manifest.
@@ -640,11 +655,71 @@ A: Every experiment produces a `ReproducibilityManifest` recording: `mind_id`, `
 **Q: What is Computational Developmental Divergence?**
 A: Computational Developmental Divergence is the phenomenon, demonstrated by the NurosOS flagship experiment, in which two organisms instantiated from the same developmental genome and run with the same random seed produce divergent developmental trajectories because they developed in different environments. It is an observable computational fact about divergent developmental trajectories. It is NOT evidence of consciousness, biological individuality, subjective experience, artificial life, or sentience.
 
+> ⚠️ **Scientific caveat**: the divergence is currently confounded by RNG resource placement + hard-coded bias + privileged env observations. The causal attribution to "learning" or "development" is **UNVALIDATED** until the confounds are controlled. See `docs/RESEARCH_AUDIT.md` §11 (Confounds).
+
 **Q: What are the 5 HippoCore replay policies?**
 A: `RecentReplayPolicy` (most recent N), `ImportanceWeightedReplayPolicy` (∝ importance²), `NoveltyWeightedReplayPolicy` (∝ 1/(1+access_count)), `PredictionErrorWeightedReplayPolicy` (∝ |prediction_error|), `RandomReplayPolicy` (uniform baseline). All deterministic when seeded.
 
+> ⚠️ The policies are **implemented but not consulted by `Organism.tick()`** during action selection — replay is not yet wired to behavior. See `docs/MEMORY_AUDIT.md`.
+
 **Q: What are the 2 HippoCore consolidation strategies?**
 A: `TagJaccardConsolidation` (cluster by Jaccard similarity on tags) and `ContentPrefixConsolidation` (cluster by shared content prefix). Both deterministic. The pipeline: select ACTIVE sources → cluster → derive SEMANTIC targets from clusters of size ≥ 2 → mark sources CONSOLIDATED + halve importance → associate sources ↔ target via bidirectional `consolidated_into` edges.
+
+> ⚠️ Consolidation is **implemented but not consulted by `Organism.tick()`**. See `docs/MEMORY_AUDIT.md`.
+
+---
+
+## Scientific Audit
+
+> **⚠️ ARCHITECTURE ≠ EVIDENCE. IMPLEMENTATION ≠ EMERGENCE. REPRODUCIBILITY ≠ VALIDITY.**
+
+A forensic scientific audit of the NurosOS repository has been completed. The audit traces every major claim to file:line evidence, identifies confounds, and recommends minimum changes to establish a credible experimental baseline.
+
+### Key audit findings
+
+| # | Finding | Severity | Evidence |
+|---|---------|----------|----------|
+| 1 | **Hard-coded `heuristic_bias`** encodes task knowledge (resource-seeking, hazard-avoidance, direction-aware movement) — the learned `action_preferences` are a secondary signal | CRITICAL | `organism.rs:451-503` |
+| 2 | **`ResourceWorld.observe()` leaks privileged state** (`direction_to_resource`, `nearest_resource_distance`, `on_resource`, `on_hazard`) — the env is teacher-shaped | CRITICAL | `environment.rs:242-250` |
+| 3 | **No baseline condition** — no Q-learning or conventional learning system to compare NurosOS against | CRITICAL | no `benchmarks/baselines/` existed before the audit |
+| 4 | **Single-seed flagship results** are anecdotal (one seed pair: `env_a_seed=1, env_b_seed=999`) | HIGH | `WHITEPAPER.md:134-141` |
+| 5 | **Memory is not consulted during action selection** — `Organism.tick()` does not call `MemoryEngine.retrieve()` | CRITICAL (for HippoCore) | `organism.rs:408-441`, `nuros/organism.py:178-211` |
+| 6 | The "Computational Developmental Divergence" is **confounded** by RNG + bias + privileged obs — causal attribution to "learning" is UNVALIDATED | HIGH | see `docs/RESEARCH_AUDIT.md` §11 |
+
+### Audit deliverables (11 files)
+
+| # | File | Description |
+|---|------|-------------|
+| 1 | `docs/RESEARCH_AUDIT.md` | 17-section forensic audit |
+| 2 | `docs/ARCHITECTURE_AUDIT.md` | Module-level cross-check |
+| 3 | `docs/MEMORY_AUDIT.md` | Memory subsystem audit (5 types × 10 operations) |
+| 4 | `experiments/EXPERIMENTS.md` | Preregistration v1.0 (30 seeds, α=0.0042) |
+| 5 | `experiments/ABLATION_MATRIX.md` | Formal 6-condition × 2-mode ablation matrix |
+| 6 | `docs/EXPERIMENTAL_ROADMAP.md` | Recommended execution order (Phases A-H) |
+| 7 | `docs/HIPPOCORE_INTEGRATION_PLAN.md` | Future HippoCore intervention design |
+| 8 | `docs/SCIENTIFIC_RISKS.md` | 14 risks classified by severity |
+| 9 | `docs/BASELINE_SPEC.md` | Q-learning baseline specification |
+| 10 | `docs/REPRODUCIBILITY_SPEC.md` | 7 reproducibility invariants |
+| 11 | `docs/METRICS_SPEC.md` | 19 metrics across 5 categories |
+
+### Q-learning baseline (audit deliverable)
+
+A tabular Q-learning baseline has been implemented at `nuros/baselines/q_learning/` with:
+- Standard Bellman backup: `Q(s,a) ← Q(s,a) + α[r + γ max_a' Q(s',a') - Q(s,a)]`
+- ε-greedy action selection (deterministic given seed)
+- LRU eviction at 200 entries (matches Rust `MinimumOrganism` cap)
+- 19 unit tests
+- No NurosOS-privileged information
+
+### Recommended next steps (per audit)
+
+1. **Phase A**: Strip the env's privileged observation fields (add a `privileged_obs: bool` toggle)
+2. **Phase B**: Add `disable_heuristic_bias` flag to enable the ablation
+3. **Phase C**: Run Q-learning baseline vs NurosOS baseline (6 conditions × 2 modes × 30 seeds)
+4. **Phase D**: Implement non-stationary 3-regime env
+5. **Phase E-H**: Experiment harness + 30-seed runs + statistical analysis + documentation integrity
+
+**HippoCore should remain a future intervention** until the NurosOS baseline is empirically characterized.
 
 ---
 
