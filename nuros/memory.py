@@ -554,14 +554,22 @@ class DefaultMemoryContract(MemoryEngine):
         """Restore memory state from a previous ``checkpoint()`` call.
 
         Idempotent: restoring twice yields the same state as restoring once.
+
+        Accepts any payload whose ``schema_version`` starts with
+        ``nuros.`` — this allows cross-engine restore (e.g. an organism
+        configured with ``memory_engine='hippocore'`` can restore a
+        checkpoint produced by ``DefaultMemoryContract``, and vice versa).
+        In PHASE 3 the entries/working_memory/operation_log layout is
+        identical across engines; PHASE 6 may need engine-specific
+        schema-version gates when the dual-store lands.
         """
         if not isinstance(payload, dict):
             raise ValueError(f"restore payload must be a dict, got {type(payload)}")
         schema = payload.get("schema_version", "unknown")
-        if not schema.startswith("nuros.memory."):
+        if not schema.startswith("nuros."):
             raise ValueError(
                 f"restore payload schema_version {schema!r} does not look "
-                f"like a NurosOS memory checkpoint"
+                f"like a NurosOS memory checkpoint (expected prefix 'nuros.')"
             )
         # Reset state before restoring — idempotent.
         self._memories.clear()

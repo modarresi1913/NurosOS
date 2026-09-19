@@ -337,27 +337,25 @@ class Organism:
         """Construct the MemoryEngine implementation selected by
         ``config.memory_engine``.
 
-        PHASE 2: only "default" is supported. PHASE 3 will add "hippocore".
+        PHASE 3: 'default' → DefaultMemoryContract; 'hippocore' → HippoCoreMemory
+        (a thin wrapper around DefaultMemoryContract in PHASE 3, real
+        HippoCore mechanisms land in PHASES 4-6).
         """
-        # Local import to avoid circular import (nuros.hippocore is
-        # not yet present in PHASE 2 — the import is wrapped in a try).
+        # Local imports to avoid circular import (nuros.hippocore imports
+        # from nuros.memory which imports from nuros.memory_engine).
         engine_name = (config.memory_engine or "default").lower().strip()
         if engine_name == "default":
             return DefaultMemoryContract(epistemic_kernel=None)
         if engine_name == "hippocore":
             try:
-                # PHASE 3 lands this module. For PHASE 2, the import will
-                # fail with ModuleNotFoundError, which we catch and fall
-                # back to default with a warning.
+                # PHASE 3 lands this module.
                 from nuros.hippocore.memory_engine import HippoCoreMemory
                 return HippoCoreMemory()
             except ImportError as e:
                 import warnings
                 warnings.warn(
                     f"memory_engine='hippocore' requested but nuros.hippocore "
-                    f"is not available yet ({e}). Falling back to default. "
-                    f"HippoCoreMemory lands in PHASE 3 of the HippoCore "
-                    f"integration roadmap.",
+                    f"is not available ({e}). Falling back to default.",
                     UserWarning,
                     stacklevel=3,
                 )

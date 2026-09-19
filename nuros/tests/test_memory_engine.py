@@ -419,6 +419,21 @@ class TestCheckpointRestore(unittest.TestCase):
         with self.assertRaises(ValueError):
             memory2.restore({"schema_version": "foreign.unknown.v1", "entries": []})
 
+    def test_restore_accepts_hippocore_schema_prefix(self):
+        """PHASE 3: DefaultMemoryContract.restore() accepts any payload
+        with schema_version starting 'nuros.' — this enables cross-engine
+        restore (an organism migrating default → hippocore)."""
+        memory = DefaultMemoryContract()
+        memory.encode("x", importance=0.5)
+        payload = memory.checkpoint()
+        # Simulate a HippoCoreMemory-produced payload by overriding the
+        # schema_version prefix.
+        payload["schema_version"] = "nuros.hippocore.HippoCoreMemory.v1.phase3"
+        memory2 = DefaultMemoryContract()
+        memory2.restore(payload)
+        self.assertEqual(memory2.memory_count, 1)
+        self.assertEqual(memory2.iter_all()[0].content, "x")
+
     def test_restore_handles_empty_payload(self):
         memory2 = DefaultMemoryContract()
         memory2.restore({"schema_version": memory2.SCHEMA_VERSION, "entries": []})
