@@ -1,0 +1,84 @@
+{
+  "experiment_id": "audit_30seeds_1789842227",
+  "n_seeds": 30,
+  "base_seed": 42,
+  "n_steps": 300,
+  "conditions": {
+    "A": {
+      "name": "q_learning",
+      "disable_bias": null,
+      "disable_maturation": null,
+      "disable_plasticity_decay": null,
+      "disable_self_model": null,
+      "use_memory": null,
+      "memory_engine": null
+    },
+    "B": {
+      "name": "nurosos_baseline",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false,
+      "use_memory": false,
+      "memory_engine": "default"
+    },
+    "C": {
+      "name": "no_maturation",
+      "disable_bias": false,
+      "disable_maturation": true,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false,
+      "use_memory": false,
+      "memory_engine": "default"
+    },
+    "D": {
+      "name": "no_plasticity_decay",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": true,
+      "disable_self_model": false,
+      "use_memory": false,
+      "memory_engine": "default"
+    },
+    "E": {
+      "name": "no_self_model",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": true,
+      "use_memory": false,
+      "memory_engine": "default"
+    },
+    "F": {
+      "name": "no_heuristic_bias",
+      "disable_bias": true,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false,
+      "use_memory": false,
+      "memory_engine": "default"
+    },
+    "G": {
+      "name": "nurosos_plus_memory",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false,
+      "use_memory": true,
+      "memory_engine": "default"
+    },
+    "H": {
+      "name": "nurosos_plus_hippocore",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false,
+      "use_memory": true,
+      "memory_engine": "hippocore"
+    }
+  },
+  "observation_modes": [
+    "privileged",
+    "raw"
+  ]
+}

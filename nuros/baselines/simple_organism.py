@@ -65,6 +65,10 @@ class GenomeConfig:
     disable_plasticity_decay: bool = False
     disable_self_model: bool = False
     memory_cap: int = 200
+    use_memory: bool = False  # When True, consult memory during action selection
+    memory_engine: str = "default"  # "default" or "hippocore"
+    replay_interval: int = 50  # How often to run replay (in steps). 0 = never.
+    consolidate_interval: int = 100  # How often to run consolidation. 0 = never.
 
 
 class SimpleOrganism:
@@ -106,8 +110,151 @@ class SimpleOrganism:
         self.sm_update_count = 0
         self.sm_believed_capabilities: dict[str, float] = {}
 
+        # Memory engine (PHASE 10+ follow-up — wire memory to behavior).
+        self._memory_engine = None
+        self._replay_count = 0
+        self._consolidate_count = 0
+        if genome.use_memory:
+            self._init_memory_engine()
+
+    def _init_memory_engine(self):
+        """Initialize the memory engine (DefaultMemoryContract or HippoCoreMemory)."""
+        from nuros.memory import DefaultMemoryContract
+        if self.genome.memory_engine == "hippocore":
+            from nuros.hippocore.memory_engine import HippoCoreMemory, HippoCoreMemoryConfig
+            config = HippoCoreMemoryConfig(
+                replay_policy="importance_weighted",
+                replay_seed=42,
+                consolidation_strategy="tag_jaccard",
+                consolidation_similarity_threshold=0.3,
+            )
+            self._memory_engine = HippoCoreMemory(
+                config=config,
+                organism_id=self.organism_id,
+            )
+        else:
+            self._memory_engine = DefaultMemoryContract()
+
+    def _memory_bias(self, action: str, obs: dict) -> float:
+        """Compute a memory-based bias for this action.
+
+        Retrieves similar past memories and biases toward actions that
+        were rewarded in similar situations, away from actions that were
+        punished. This is the core "memory → behavior" wiring.
+
+        Returns 0.0 if memory is not in use or no matching memories.
+        """
+        if self._memory_engine is None:
+            return 0.0
+
+        # Build a query from the observation — use the agent_pos string.
+        obs_pos = obs.get("agent_pos")
+        if obs_pos is None:
+            return 0.0
+        query = json.dumps(obs_pos)
+
+        # Retrieve up to 5 memories whose content contains the query.
+        try:
+            retrieved = self._memory_engine.retrieve(query=query, limit=5)
+        except Exception:
+            return 0.0
+
+        if not retrieved:
+            return 0.0
+
+        bias = 0.0
+        for entry in retrieved:
+            # For DefaultMemoryContract: action + reward are in entry.context.
+            # For HippoCoreMemory: action is in entry.action, reward is in
+            # entry.outcome (if set) or entry.context.
+            mem_action = getattr(entry, 'action', None)
+            mem_reward = None
+
+            # Try entry.context first (DefaultMemoryContract path).
+            ctx = getattr(entry, 'context', None)
+            if isinstance(ctx, dict):
+                if mem_action is None:
+                    mem_action = ctx.get("action")
+                mem_reward = ctx.get("reward")
+
+            # Try entry.outcome (HippoCoreMemory encode_episode path).
+            if mem_reward is None:
+                outcome = getattr(entry, 'outcome', None)
+                if isinstance(outcome, dict):
+                    mem_reward = outcome.get("reward")
+
+            if mem_action is not None and mem_reward is not None:
+                if str(mem_action) == action:
+                    if mem_reward > 0:
+                        bias += 0.1 * mem_reward
+                    elif mem_reward < 0:
+                        bias -= 0.05 * abs(mem_reward)
+
+        return bias
+
+    def _encode_to_memory(self, obs: dict, action: str, reward: float,
+                          prediction_error: float, next_obs: dict):
+        """Encode this experience into the memory engine.
+
+        The content string MUST contain the agent_pos so that
+        _memory_bias's substring query can find it.
+        """
+        if self._memory_engine is None:
+            return
+
+        # Build a content string that contains agent_pos (for substring query).
+        obs_pos = obs.get("agent_pos", [])
+        content = f"pos:{json.dumps(obs_pos)}"
+
+        if hasattr(self._memory_engine, 'encode_episode'):
+            # HippoCoreMemory path.
+            self._memory_engine.encode_episode(
+                content=content,
+                action=action,
+                outcome={"reward": reward},
+                prediction={"predicted_reward": self.action_preferences.get(action, 0.0)},
+                prediction_error=prediction_error,
+                environment_state=obs,
+            )
+        else:
+            # DefaultMemoryContract path — context carries action + reward.
+            self._memory_engine.encode(
+                content=content,
+                importance=min(1.0, abs(reward) + 0.1),
+                context={"action": action, "reward": reward, "pe": prediction_error},
+            )
+
+    def _maybe_replay_and_consolidate(self):
+        """Run replay + consolidation periodically."""
+        if self._memory_engine is None:
+            return
+
+        # Replay: re-encode memories to strengthen/reconsolidate them.
+        if self.genome.replay_interval > 0 and self.step % self.genome.replay_interval == 0:
+            try:
+                memories = self._memory_engine.replay(n=10)
+                for mem in memories:
+                    self._memory_engine.reconsolidate(mem.memory_id, reward=0.01)
+                self._replay_count += 1
+            except Exception:
+                pass
+
+        # Consolidation: run fast→slow pipeline.
+        if self.genome.consolidate_interval > 0 and self.step % self.genome.consolidate_interval == 0:
+            try:
+                n_targets = self._memory_engine.consolidate()
+                self._consolidate_count += n_targets
+            except Exception:
+                pass
+
     def tick(self, env) -> dict[str, Any]:
-        """Run one tick. Mirrors MinimumOrganism::tick (organism.rs:179-290)."""
+        """Run one tick. Mirrors MinimumOrganism::tick (organism.rs:179-290).
+
+        PHASE 10+ follow-up: when use_memory=True, the organism also:
+          - Retrieves similar memories before action selection (_memory_bias).
+          - Encodes the new experience after the tick (_encode_to_memory).
+          - Periodically runs replay + consolidation (_maybe_replay_and_consolidate).
+        """
         self.step += 1
         step = self.step
 
@@ -115,7 +262,7 @@ class SimpleOrganism:
         obs = env.observe()
         self.last_observation = obs
 
-        # 2. Select action.
+        # 2. Select action (now with memory bias if enabled).
         candidate = self._select_action(obs)
 
         # 3-4. Execute + receive reward.
@@ -143,6 +290,12 @@ class SimpleOrganism:
         if len(self.memory) > self.genome.memory_cap:
             self.memory.sort(key=lambda m: m.get("reward", 0), reverse=True)
             self.memory = self.memory[:self.genome.memory_cap]
+
+        # 6a-bis. Encode to MemoryEngine (PHASE 10+ — memory → behavior wiring).
+        self._encode_to_memory(obs, candidate, actual_reward, prediction_error, next_obs)
+
+        # 6a-ter. Periodic replay + consolidation (HippoCore only).
+        self._maybe_replay_and_consolidate()
 
         # 6b. Self-model update.
         if not self.genome.disable_self_model:
@@ -176,6 +329,9 @@ class SimpleOrganism:
             "prediction_error": prediction_error, "predicted_reward": predicted_reward,
             "dev_stage": self.dev_stage, "energy": self.dev_energy,
             "plasticity": self.dev_plasticity, "memory_size": len(self.memory),
+            "memory_engine_size": self._memory_engine.memory_count if self._memory_engine else 0,
+            "replay_count": self._replay_count,
+            "consolidate_count": self._consolidate_count,
         }
 
     def _select_action(self, obs: dict) -> str:
@@ -189,13 +345,14 @@ class SimpleOrganism:
             idx = int(deterministic_random(self.step + 1, f"{self._state_hash()}|{obs_sig}") * len(actions)) % len(actions)
             return actions[idx]
 
-        # Exploit: argmax(pref + bias).
+        # Exploit: argmax(pref + bias + memory_bias).
         best_action = "idle"
         best_score = float("-inf")
         for a in ACTIONS:
             pref = self.action_preferences.get(a, 0.0)
             bias = self._heuristic_bias(a, obs)
-            score = pref + bias
+            mem_bias = self._memory_bias(a, obs) if self.genome.use_memory else 0.0
+            score = pref + bias + mem_bias
             if score > best_score:
                 best_score = score
                 best_action = a

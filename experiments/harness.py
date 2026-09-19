@@ -36,17 +36,29 @@ from environments.nonstationary import NonStationaryEnv
 
 CONDITIONS = {
     "A": {"name": "q_learning", "disable_bias": None, "disable_maturation": None,
-           "disable_plasticity_decay": None, "disable_self_model": None},
+           "disable_plasticity_decay": None, "disable_self_model": None,
+           "use_memory": None, "memory_engine": None},
     "B": {"name": "nurosos_baseline", "disable_bias": False, "disable_maturation": False,
-           "disable_plasticity_decay": False, "disable_self_model": False},
+           "disable_plasticity_decay": False, "disable_self_model": False,
+           "use_memory": False, "memory_engine": "default"},
     "C": {"name": "no_maturation", "disable_bias": False, "disable_maturation": True,
-           "disable_plasticity_decay": False, "disable_self_model": False},
+           "disable_plasticity_decay": False, "disable_self_model": False,
+           "use_memory": False, "memory_engine": "default"},
     "D": {"name": "no_plasticity_decay", "disable_bias": False, "disable_maturation": False,
-           "disable_plasticity_decay": True, "disable_self_model": False},
+           "disable_plasticity_decay": True, "disable_self_model": False,
+           "use_memory": False, "memory_engine": "default"},
     "E": {"name": "no_self_model", "disable_bias": False, "disable_maturation": False,
-           "disable_plasticity_decay": False, "disable_self_model": True},
+           "disable_plasticity_decay": False, "disable_self_model": True,
+           "use_memory": False, "memory_engine": "default"},
     "F": {"name": "no_heuristic_bias", "disable_bias": True, "disable_maturation": False,
-           "disable_plasticity_decay": False, "disable_self_model": False},
+           "disable_plasticity_decay": False, "disable_self_model": False,
+           "use_memory": False, "memory_engine": "default"},
+    "G": {"name": "nurosos_plus_memory", "disable_bias": False, "disable_maturation": False,
+           "disable_plasticity_decay": False, "disable_self_model": False,
+           "use_memory": True, "memory_engine": "default"},
+    "H": {"name": "nurosos_plus_hippocore", "disable_bias": False, "disable_maturation": False,
+           "disable_plasticity_decay": False, "disable_self_model": False,
+           "use_memory": True, "memory_engine": "hippocore"},
 }
 
 
@@ -96,6 +108,10 @@ def run_single_experiment(
             disable_maturation=cond["disable_maturation"],
             disable_plasticity_decay=cond["disable_plasticity_decay"],
             disable_self_model=cond["disable_self_model"],
+            use_memory=cond.get("use_memory", False),
+            memory_engine=cond.get("memory_engine", "default"),
+            replay_interval=50,
+            consolidate_interval=100,
         )
         organism = SimpleOrganism(genome, organism_id=f"org-{condition_id}-{seed}")
         per_step = []
