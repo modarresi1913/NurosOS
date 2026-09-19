@@ -449,6 +449,14 @@ impl MinimumOrganism {
     ///   - Bias toward the direction of the nearest resource (if known).
     ///   - When far from any resource, encourage exploration over Idling.
     fn heuristic_bias(&self, action: Action, obs: &Observation) -> f64 {
+        // PHASE 4 (Scientific Audit): when genome.biases.disable_heuristic_bias
+        // is true, return 0.0 for all (action, observation) pairs. This enables
+        // the ablation condition F from experiments/ABLATION_MATRIX.md.
+        // See docs/RESEARCH_AUDIT.md §9.
+        if self.genome.biases.disable_heuristic_bias {
+            return 0.0;
+        }
+
         let on_resource = obs.payload.get("on_resource").and_then(|v| v.as_bool()).unwrap_or(false);
         let on_hazard = obs.payload.get("on_hazard").and_then(|v| v.as_bool()).unwrap_or(false);
 

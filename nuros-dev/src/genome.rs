@@ -153,7 +153,7 @@ pub struct InitialCapabilitiesSpec {
 }
 
 /// Exploration / prediction / value biases that shape early behavior.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BiasesSpec {
     /// Initial exploration drive in [0, 1]. Higher = more random actions.
     #[serde(default = "default_exploration_bias")]
@@ -164,11 +164,28 @@ pub struct BiasesSpec {
     /// Initial risk sensitivity in [0, 1]. Higher = more risk-averse.
     #[serde(default = "default_risk_sensitivity")]
     pub risk_sensitivity: f64,
+    /// PHASE 4 (Scientific Audit): when true, `MinimumOrganism::heuristic_bias()`
+    /// returns 0.0 for all (action, observation) pairs. This enables the
+    /// ablation condition F (no heuristic bias) from `experiments/ABLATION_MATRIX.md`.
+    /// Default: false (backward compatible — bias is enabled by default).
+    #[serde(default)]
+    pub disable_heuristic_bias: bool,
 }
 
 fn default_exploration_bias() -> f64 { 0.3 }
 fn default_prediction_bias() -> f64 { 0.5 }
 fn default_risk_sensitivity() -> f64 { 0.5 }
+
+impl Default for BiasesSpec {
+    fn default() -> Self {
+        Self {
+            exploration_bias: default_exploration_bias(),
+            prediction_bias: default_prediction_bias(),
+            risk_sensitivity: default_risk_sensitivity(),
+            disable_heuristic_bias: false,
+        }
+    }
+}
 
 /// The Developmental Genome.
 ///

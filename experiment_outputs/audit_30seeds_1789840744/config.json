@@ -1,0 +1,54 @@
+{
+  "experiment_id": "audit_30seeds_1789840744",
+  "n_seeds": 30,
+  "base_seed": 42,
+  "n_steps": 300,
+  "conditions": {
+    "A": {
+      "name": "q_learning",
+      "disable_bias": null,
+      "disable_maturation": null,
+      "disable_plasticity_decay": null,
+      "disable_self_model": null
+    },
+    "B": {
+      "name": "nurosos_baseline",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false
+    },
+    "C": {
+      "name": "no_maturation",
+      "disable_bias": false,
+      "disable_maturation": true,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false
+    },
+    "D": {
+      "name": "no_plasticity_decay",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": true,
+      "disable_self_model": false
+    },
+    "E": {
+      "name": "no_self_model",
+      "disable_bias": false,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": true
+    },
+    "F": {
+      "name": "no_heuristic_bias",
+      "disable_bias": true,
+      "disable_maturation": false,
+      "disable_plasticity_decay": false,
+      "disable_self_model": false
+    }
+  },
+  "observation_modes": [
+    "privileged",
+    "raw"
+  ]
+}
