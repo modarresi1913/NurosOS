@@ -381,10 +381,10 @@ python -m pytest
 
 All 203 tests passing ✅ (93 Rust + 110 Python)
 
-The SynapseLang compiler has its own suite (16 tests, requires `msgpack`):
+The SynapseLang compiler has its own suite (16 tests) and its own dependencies:
 
 ```bash
-pip install msgpack && cd compiler && python -m pytest
+cd compiler && pip install -e . && python -m pytest
 ```
 
 The legacy neuromorphic kernel (`kernel/`) additionally requires system HDF5

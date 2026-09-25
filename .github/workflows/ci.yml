@@ -53,7 +53,7 @@ jobs:
       - name: pytest
         run: python -m pytest -q
       - name: SynapseLang compiler tests
-        run: pip install msgpack && python -m pytest -q
+        run: pip install -e . && python -m pytest -q
         working-directory: compiler
 
   experiment:
