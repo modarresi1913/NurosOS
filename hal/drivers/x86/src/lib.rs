@@ -11,7 +11,7 @@
 //! a faithful but slow simulation, useful for experiments but not for
 //! survival.
 
-use nuros_hal::{NeuronId, NeuronParams, NeuromorphicTarget};
+use nuros_hal_api::{NeuronId, NeuronParams, NeuromorphicTarget};
 
 pub struct X86Target {
     neuron_count: usize,

@@ -9,7 +9,7 @@
 //! compact, low-power processing node that handles local reflexes
 //! without consulting the full brain.
 
-use nuros_hal::{NeuronId, NeuronParams, NeuromorphicTarget};
+use nuros_hal_api::{NeuronId, NeuronParams, NeuromorphicTarget};
 
 pub struct ArmTarget {
     neuron_count: usize,

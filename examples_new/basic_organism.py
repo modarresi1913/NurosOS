@@ -3,22 +3,15 @@
 Demonstrates creating, running, and inspecting a basic organism.
 """
 
-import sys
-sys.path.insert(0, '/home/z/my-project/NurosOS')
-
-from nuros.organism import Organism, OrganismConfig, OrganismState
-from nuros.epistemic import EpistemicLabel
+from nuros.organism import Organism, OrganismConfig
 
 
 def main():
     # Create organism
-    config = OrganismConfig(
-        name="demo-organism",
-        description="A basic demonstration organism",
-    )
+    config = OrganismConfig(name="demo-organism", genome_id="demo")
     organism = Organism(config)
 
-    print(f"Organism created: {organism.config.name}")
+    print(f"Organism created: {organism.name}")
     print(f"State: {organism.state.name}")
 
     # Birth
@@ -39,7 +32,7 @@ def main():
 
     # Fork
     child = organism.fork(name="child-organism")
-    print(f"Forked: {child.config.name} (id: {child.organism_id[:8]}...)")
+    print(f"Forked: {child.name} (id: {child.organism_id[:8]}...)")
 
     # Terminate
     organism.terminate()

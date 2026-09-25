@@ -57,7 +57,7 @@ pub struct InitialMemorySpec {
 /// Rules governing plasticity (how the organism changes its decision policy
 /// as a function of experience). For the MVP deterministic engine this is
 /// just a learning rate; richer engines may add Hebbian/STDP rules.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlasticityRulesSpec {
     /// Learning rate applied to prediction-error-driven updates.
     #[serde(default = "default_lr")]
@@ -70,9 +70,18 @@ pub struct PlasticityRulesSpec {
 fn default_lr() -> f64 { 0.1 }
 fn default_forget() -> f64 { 0.01 }
 
+impl Default for PlasticityRulesSpec {
+    fn default() -> Self {
+        Self {
+            learning_rate: default_lr(),
+            forgetting_rate: default_forget(),
+        }
+    }
+}
+
 /// Maturation schedule: at what experience count does each developmental
 /// milestone trigger. Maps milestone name → step threshold.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MaturationScheduleSpec {
     /// Step at which the organism transitions NASCENT → DEVELOPING.
     #[serde(default = "default_nasant_step")]
@@ -89,9 +98,19 @@ fn default_nasant_step() -> u64 { 10 }
 fn default_maturing_step() -> u64 { 100 }
 fn default_mature_step() -> u64 { 500 }
 
+impl Default for MaturationScheduleSpec {
+    fn default() -> Self {
+        Self {
+            nascent_to_developing: default_nasant_step(),
+            developing_to_maturing: default_maturing_step(),
+            maturing_to_mature: default_mature_step(),
+        }
+    }
+}
+
 /// Homeostasis parameters: setpoints + adaptation rates for the internal
 /// regulation variables.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HomeostasisSpec {
     /// Setpoint for energy (organism tries to keep energy at this level).
     #[serde(default = "default_energy_setpoint")]
@@ -108,8 +127,18 @@ fn default_energy_setpoint() -> f64 { 0.8 }
 fn default_pe_setpoint() -> f64 { 0.1 }
 fn default_uncertainty_setpoint() -> f64 { 0.2 }
 
+impl Default for HomeostasisSpec {
+    fn default() -> Self {
+        Self {
+            energy_setpoint: default_energy_setpoint(),
+            prediction_error_setpoint: default_pe_setpoint(),
+            uncertainty_setpoint: default_uncertainty_setpoint(),
+        }
+    }
+}
+
 /// Energy model: how much each cognitive operation costs in energy.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnergyModelSpec {
     #[serde(default = "default_perceive_cost")]
     pub perceive_cost: f64,
@@ -126,10 +155,21 @@ fn default_predict_cost() -> f64 { 0.02 }
 fn default_act_cost() -> f64 { 0.05 }
 fn default_idle_regen() -> f64 { 0.03 }
 
+impl Default for EnergyModelSpec {
+    fn default() -> Self {
+        Self {
+            perceive_cost: default_perceive_cost(),
+            predict_cost: default_predict_cost(),
+            act_cost: default_act_cost(),
+            idle_regen: default_idle_regen(),
+        }
+    }
+}
+
 /// Mutation parameters used by the (PROPOSED) artificial evolution layer.
 /// Recorded here so that the genome is self-describing about how it can be
 /// mutated.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MutationSpec {
     /// Probability of mutating each numeric field during reproduction.
     #[serde(default = "default_mut_rate")]
@@ -142,6 +182,15 @@ pub struct MutationSpec {
 fn default_mut_rate() -> f64 { 0.05 }
 fn default_mut_sigma() -> f64 { 0.1 }
 
+impl Default for MutationSpec {
+    fn default() -> Self {
+        Self {
+            mutation_rate: default_mut_rate(),
+            mutation_sigma: default_mut_sigma(),
+        }
+    }
+}
+
 /// Initial capabilities the organism is born with. Capabilities are
 /// coarse-grained abilities (e.g. "locate_resource", "avoid_risk") that
 /// can be acquired or lost during development.
@@ -153,7 +202,7 @@ pub struct InitialCapabilitiesSpec {
 }
 
 /// Exploration / prediction / value biases that shape early behavior.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BiasesSpec {
     /// Initial exploration drive in [0, 1]. Higher = more random actions.
     #[serde(default = "default_exploration_bias")]
@@ -169,6 +218,16 @@ pub struct BiasesSpec {
 fn default_exploration_bias() -> f64 { 0.3 }
 fn default_prediction_bias() -> f64 { 0.5 }
 fn default_risk_sensitivity() -> f64 { 0.5 }
+
+impl Default for BiasesSpec {
+    fn default() -> Self {
+        Self {
+            exploration_bias: default_exploration_bias(),
+            prediction_bias: default_prediction_bias(),
+            risk_sensitivity: default_risk_sensitivity(),
+        }
+    }
+}
 
 /// The Developmental Genome.
 ///
@@ -271,6 +330,30 @@ mod tests {
         let g1 = DevelopmentalGenome::named("test");
         let g2 = DevelopmentalGenome::named("test");
         assert_eq!(g1.hash(), g2.hash());
+    }
+
+    #[test]
+    fn default_genome_is_developmentally_active() {
+        let g = DevelopmentalGenome::named("defaults");
+        assert_eq!(g.plasticity_rules.learning_rate, default_lr());
+        assert_eq!(g.plasticity_rules.forgetting_rate, default_forget());
+        assert_eq!(g.biases.exploration_bias, default_exploration_bias());
+        assert_eq!(g.biases.prediction_bias, default_prediction_bias());
+        assert_eq!(g.biases.risk_sensitivity, default_risk_sensitivity());
+        assert_eq!(g.maturation_schedule.nascent_to_developing, default_nasant_step());
+        assert_eq!(g.maturation_schedule.developing_to_maturing, default_maturing_step());
+        assert_eq!(g.maturation_schedule.maturing_to_mature, default_mature_step());
+        assert_eq!(g.energy_model.act_cost, default_act_cost());
+        assert_eq!(g.homeostasis.energy_setpoint, default_energy_setpoint());
+        assert_eq!(g.mutation_parameters.mutation_rate, default_mut_rate());
+    }
+
+    #[test]
+    fn constructed_and_minimal_json_genomes_agree() {
+        let constructed = DevelopmentalGenome::named("agree");
+        let from_minimal_json =
+            DevelopmentalGenome::from_json(r#"{"name":"agree"}"#).unwrap();
+        assert_eq!(constructed.hash(), from_minimal_json.hash());
     }
 
     #[test]

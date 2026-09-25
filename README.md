@@ -217,8 +217,8 @@ different environmental histories.
 > divergent developmental trajectories.
 
 ```bash
-# Build the Rust extension (one-time)
-cd nuros-dev && maturin build --release && pip install --force-reinstall target/wheels/nuros_dev-*.whl && cd ..
+# Build the Rust extension and install the package (one-time)
+pip install -e .
 
 # Run the flagship experiment
 python experiments/same_genome_different_world.py \
@@ -246,15 +246,13 @@ Outputs (written to `--out-dir`):
 git clone https://github.com/modarresi1913/NurosOS.git
 cd NurosOS
 
-# Build and install the Rust developmental substrate
-cd nuros-dev
-maturin build --release
-pip install --force-reinstall target/wheels/nuros_dev-*.whl
-cd ..
+# Build the Rust developmental substrate and install NurosOS (editable)
+# Requires a Rust toolchain (>= 1.75); maturin is pulled in automatically.
+pip install -e .
 
-# Run the test suite (75 tests: 57 Rust + 18 Python)
+# Run the test suite (203 tests: 93 Rust + 110 Python)
 cd nuros-dev && cargo test --lib && cd ..
-python -m pytest nuros/tests/test_developmental_substrate.py -v
+python -m pytest
 
 # Run the flagship experiment
 python experiments/same_genome_different_world.py --steps 200
@@ -363,7 +361,7 @@ See [ROADMAP.md](ROADMAP.md) for the full version-by-version roadmap.
 ## Testing
 
 ```bash
-# Rust unit tests (57 tests) — covers genome hashing, lifecycle, environments,
+# Rust unit tests (93 tests) — covers genome hashing, lifecycle, environments,
 # organism determinism, trajectory divergence, checkpoint/replay, mind diff,
 # causality graph, telemetry, and reproducibility manifest.
 cd nuros-dev && cargo test --lib
@@ -375,9 +373,22 @@ python -m pytest nuros/tests/test_developmental_substrate.py -v
 # Existing Python cognitive-layer tests (33 tests) — covers epistemic kernel,
 # memory contract, safety kernel, etc.
 python -m pytest nuros/tests/test_core.py -v
+
+# Everything Python-side (110 tests: cognitive layer, substrate bindings,
+# observatory, aging, metabolism, counterfactuals)
+python -m pytest
 ```
 
-All 108 tests passing ✅ (57 Rust + 18 developmental-substrate Python + 33 cognitive-layer Python)
+All 203 tests passing ✅ (93 Rust + 110 Python)
+
+The SynapseLang compiler has its own suite (16 tests, requires `msgpack`):
+
+```bash
+pip install msgpack && cd compiler && python -m pytest
+```
+
+The legacy neuromorphic kernel (`kernel/`) additionally requires system HDF5
+headers (`libhdf5-dev`) to build and is not covered by CI.
 
 ---
 
@@ -399,9 +410,8 @@ NurosOS/
 │   │   ├── diff.rs           # MindDiff
 │   │   ├── causality.rs      # DevelopmentalCausalityGraph
 │   │   └── telemetry.rs      # DevelopmentalTelemetry + ReproducibilityManifest
-│   ├── tests/                # 57 Rust unit tests
-│   ├── Cargo.toml
-│   └── pyproject.toml        # maturin build config
+│   ├── Cargo.toml            # 93 Rust unit tests live next to the modules
+│   └── pyproject.toml        # standalone maturin config (root config is canonical)
 ├── nuros/                    # Python cognitive layer (v0.2.0)
 │   ├── __init__.py           # v0.3.0-alpha identity + optional _dev import
 │   ├── epistemic.py          # Epistemic Kernel — 7 labels, forbidden transitions
@@ -453,7 +463,7 @@ NurosOS/
 
 | Component | Language | Stage |
 |-----------|----------|-------|
-| Developmental Substrate (nuros-dev) | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 57 tests passing |
+| Developmental Substrate (nuros-dev) | Rust + PyO3 | v0.3.0-alpha [IMPLEMENTED] — 93 tests passing |
 | Mind Contracts (Python) | Python | v0.3.0-alpha [IMPLEMENTED] — 33 cognitive-layer tests |
 | Developmental Substrate Integration | Python | v0.3.0-alpha [IMPLEMENTED] — 18 integration tests |
 | Flagship Experiment | Python | v0.3.0-alpha [IMPLEMENTED] — Same Genome / Different World |

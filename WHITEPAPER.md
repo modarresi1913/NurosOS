@@ -134,10 +134,11 @@ environmental histories.
 For `genome_name=flagship`, `steps=300`, `env_a_seed=1`, `env_b_seed=999`:
 
 ```
-reward_distance:        1.4341
-prediction_error_dist:  1.3941
-action_distance:        2 / 300
-mean_state_distance:    0.0019
+reward_distance:        21.0115
+prediction_error_dist:  19.0794
+action_distance:        183 / 300
+mean_state_distance:    0.0570
+final_state_distance:   0.0177
 stage_divergence:       False
 ```
 
@@ -274,14 +275,21 @@ This is the single most important contribution of NurosOS. Every other feature (
 
 ### 5.1 Methodology
 
-We benchmarked NurosOS (emulation mode, x86_64, single Xeon 8480) against a baseline of:
+> ⚠️ **These numbers are projections, not measurements.** No benchmark of
+> NurosOS against the baselines below has been run. The comparison harness in
+> `tests/benchmarks/compare_gpu.py` is a stub that prints the table in §5.2;
+> it does not execute either system. The figures are analytical targets derived
+> from published Loihi 2 energy figures and the 5% sparsity model, and they
+> must not be cited as results until the harness is implemented (v0.3.0+).
+
+The intended methodology benchmarks NurosOS (emulation mode, x86_64, single Xeon 8480) against a baseline of:
 
 - **PyTorch 2.4 + cuDNN 9** on an A100 GPU
 - **TensorRT-LLM** with FP8
 
 Task: classify a 1024-dimensional odor vector into one of 50 labels, using the Drosophila antennal lobe → mushroom body circuit as the model.
 
-### 5.2 Results
+### 5.2 Projected figures (unmeasured)
 
 | Metric                        | PyTorch/A100 | NurosOS (x86 emulation) | NurosOS (Loihi 2 target) |
 |-------------------------------|--------------|-------------------------|--------------------------|
@@ -290,7 +298,7 @@ Task: classify a 1024-dimensional odor vector into one of 50 labels, using the D
 | Peak active memory            | 4.2 GB       | 320 MB                  | 12 MB (on-chip)          |
 | Data movement (bytes/infer)   | 1.8 × 10⁹    | 2.3 × 10⁷               | 0 (all on-chip)          |
 
-**The data-movement reduction is 78× on x86 and approaches zero on neuromorphic silicon.** This is the reversal of the Von Neumann bottleneck — memory and compute are fused at the substrate level.
+**The projected data-movement reduction is 78× on x86 and approaches zero on neuromorphic silicon.** If it holds, this is the reversal of the Von Neumann bottleneck — memory and compute are fused at the substrate level.
 
 ### 5.3 Why traditional architectures cannot match this
 

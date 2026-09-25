@@ -7,3 +7,7 @@ license = "Apache-2.0"
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+nuros-hal-api = { path = "../../api" }
+half = { version = "2.4", features = ["num-traits"] }

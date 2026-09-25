@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust substrate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: nuros-dev
+      - name: cargo test
+        run: cargo test --manifest-path nuros-dev/Cargo.toml --lib
+
+  hal:
+    name: HAL drivers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: hal
+      - run: cargo build --manifest-path hal/Cargo.toml --all-features
+
+  python:
+    name: Python layer
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: nuros-dev
+      - name: Install NurosOS (builds the Rust extension)
+        run: pip install -e ".[dev]"
+      - name: pytest
+        run: python -m pytest -q
+      - name: SynapseLang compiler tests
+        run: pip install msgpack && python -m pytest -q
+        working-directory: compiler
+
+  experiment:
+    name: Flagship experiment (reproducibility)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: nuros-dev
+      - run: pip install -e .
+      - name: Run Same Genome / Different World twice and compare
+        run: |
+          set -euo pipefail
+          for run in 1 2; do
+            python experiments/same_genome_different_world.py \
+              --steps 200 --env-a-seed 1 --env-b-seed 999 \
+              --out-dir "out_$run"
+          done
+          diff out_1/summary.json out_2/summary.json
+          python -c '
+import json, sys
+s = json.load(open("out_1/summary.json"))
+print(json.dumps(s, indent=2))
+if s["divergence"]["action_distance"] == 0:
+    sys.exit("Organisms A and B never diverged - the genome is inert.")
+'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flagship-experiment
+          path: out_1

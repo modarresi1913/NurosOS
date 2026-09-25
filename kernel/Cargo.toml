@@ -54,11 +54,6 @@ anyhow = "1.0"
 
 [dev-dependencies]
 proptest = "1.4"
-criterion = "0.5"
-
-[[bench]]
-name = "spp_throughput"
-harness = false
 
 [profile.release]
 opt-level = 3

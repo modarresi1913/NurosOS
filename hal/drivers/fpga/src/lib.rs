@@ -14,7 +14,7 @@
 //!
 //! v0.1.0: stub. Real FPGA integration is scheduled for v0.3.0+.
 
-use nuros_hal::{NeuronId, NeuronParams, NeuromorphicTarget};
+use nuros_hal_api::{NeuronId, NeuronParams, NeuromorphicTarget};
 
 pub struct FpgaTarget {
     neuron_count: usize,

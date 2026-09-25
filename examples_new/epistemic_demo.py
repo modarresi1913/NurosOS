@@ -3,9 +3,6 @@
 Shows how the epistemic kernel prevents knowledge corruption.
 """
 
-import sys
-sys.path.insert(0, '/home/z/my-project/NurosOS')
-
 from nuros.epistemic import EpistemicKernel, EpistemicLabel, EpistemicViolation
 
 
@@ -18,7 +15,8 @@ def main():
     obs = ek.observe({"temperature": 22.5, "location": "lab"})
     print(f"Observation: label={obs.label.name}, confidence={obs.confidence}")
 
-    inf = ek.infer({"comfort_level": "moderate"})
+    inf = ek.infer({"comfort_level": "moderate"}, from_representations=[obs],
+                   justification="22.5C in a lab is a comfortable temperature")
     print(f"Inference: label={inf.label.name}, confidence={inf.confidence}")
 
     pred = ek.predict({"temperature_in_1h": 23.0})

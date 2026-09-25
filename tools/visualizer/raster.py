@@ -28,6 +28,8 @@ def main() -> int:
                        help="Region to visualize")
     parser.add_argument("--duration", type=float, default=10.0,
                        help="Recording duration in seconds")
+    parser.add_argument("--output", default="nuros_raster.png",
+                       help="Path of the PNG file to write")
     args = parser.parse_args()
 
     try:
@@ -75,9 +77,8 @@ def main() -> int:
     ax.set_ylabel("Neuron ID")
     ax.set_title(f"Spike raster — {args.region}")
     ax.set_xlim(0, args.duration)
-    plt.savefig("/home/z/my-project/download/nuros_raster.png", dpi=120)
-    print("[visualizer] Saved raster plot to /home/z/my-project/download/nuros_raster.png",
-          file=sys.stderr)
+    plt.savefig(args.output, dpi=120)
+    print(f"[visualizer] Saved raster plot to {args.output}", file=sys.stderr)
     return 0
 
 

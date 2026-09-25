@@ -17,7 +17,7 @@
 //! v0.1.0: stub. The actual Loihi SDK integration is scheduled for v0.3.0.
 //! See `docs/adr/0005-loihi-integration.md` (planned).
 
-use nuros_hal::{NeuronId, NeuronParams, NeuromorphicTarget};
+use nuros_hal_api::{NeuronId, NeuronParams, NeuromorphicTarget};
 
 pub struct LoihiTarget {
     neuron_count: usize,

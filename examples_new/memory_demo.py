@@ -3,11 +3,7 @@
 Shows the living memory system with provenance, decay, and audit.
 """
 
-import sys
-sys.path.insert(0, '/home/z/my-project/NurosOS')
-
 from nuros.memory import MemoryContract, MemoryType
-from nuros.epistemic import EpistemicLabel
 
 
 def main():
@@ -39,9 +35,9 @@ def main():
     print(f"✓ Revised: '{revised.content}'")
     print(f"  Revision history: {len(revised.revision_history)} entries")
 
-    # Reflect (meta-retrieval)
-    results = memory.reflect("traffic")
-    print(f"\nReflection results: {len(results)} memories found")
+    # Reflect (meta-retrieval over a single memory)
+    reflection = memory.reflect(e2.memory_id)
+    print(f"\nReflection on {e2.memory_id[:8]}...: {reflection}")
 
     # Summary
     summary = memory.summary()

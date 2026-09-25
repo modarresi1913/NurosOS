@@ -4,9 +4,6 @@ Verify that each organism level exhibits capabilities
 not present at the previous level.
 """
 
-import sys
-sys.path.insert(0, '/home/z/my-project/NurosOS')
-
 from nuros.organism import Organism, OrganismConfig
 from nuros.memory import MemoryType
 

@@ -10,6 +10,7 @@ name = "nuros_hal"
 path = "src/lib.rs"
 
 [dependencies]
+nuros-hal-api = { path = "api" }
 half = { version = "2.4", features = ["num-traits"] }
 log = "0.4"
 anyhow = "1.0"
